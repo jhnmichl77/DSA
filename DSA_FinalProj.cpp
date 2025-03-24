@@ -220,6 +220,32 @@ void addResident(){
 	
 }
 
+void deleteResident(){
+	int residentID;
+	
+	printf("\nEnter Resident ID: ");
+	scanf("%d", &residentID);
+	
+	Resident* current = head;
+	Resident* prev = NULL;
+	
+	while(current !=NULL){
+		if(current->id == residentID){
+			if(prev == NULL){
+				head = current->next;
+			}else{
+				prev->next = current->next;
+			}
+			free(current);
+			printf("\nResident with ID#: %d has been deleted successfully!\n", residentID);
+			return;
+		}
+		prev = current;
+		current = current->next;
+	}
+	printf("\nResident with ID#: %d not found!", residentID);
+}
+
 void manageResident(){
 	int manageChoice;
 	printf("\n[1]. Add");
@@ -235,7 +261,7 @@ void manageResident(){
 			//editResident();
 			break;
 		case 3:
-			//deleteResident();
+			deleteResident();
 			break;
 	}
 }
@@ -270,6 +296,11 @@ void checkRole(){
 void displayResidents(){
 	Resident* current = head;
 	
+	if (current == NULL) {
+        printf("\nNo residents registered.\n");
+        return; 
+    }
+    
 	printf("\nResidents List:\n");
     while (current != NULL) {
         printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c\n", current->id, current->name, current->age, current->gender);
@@ -281,9 +312,7 @@ void editResident(){
 	
 }
 
-void deleteResident(){
-	
-}
+
 void freeQueue(Queue* queue) {
     DocumentRequest* current = queue->front;
     DocumentRequest* next;
@@ -331,6 +360,3 @@ int main() {
 		}
 	}while(choice!=6);
 }
-
-
-
