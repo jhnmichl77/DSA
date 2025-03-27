@@ -246,6 +246,63 @@ void deleteResident(){
 	printf("\nResident with ID#: %d not found!", residentID);
 }
 
+void editResident(){
+	int residentID,choice;
+	
+	Resident* current = head;
+	Resident* prev = NULL;
+	
+	printf("\nEnter Resident ID: ");
+	scanf("%d", &residentID);
+	
+	while(current!=NULL){
+		if(current->id==residentID){
+			printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c\n", current->id, current->name, current->age, current->gender);	
+			break;
+		}	
+		current = current->next;
+	}
+	
+	if (current == NULL) {
+		printf("\nResident ID not found!\n");
+		return;
+	}
+	
+	printf("\nChoose which part:");
+	printf("\n[1]. Name");
+	printf("\n[2]. Age");
+	printf("\n[3]. Gender");
+	printf("\n[4]. Return");
+	printf("\nEnter choice: ");
+	scanf("%d", &choice);
+	
+	Resident* newResident = current;
+	switch(choice){
+		case 1:
+			printf("\nEnter new name: ");
+    		getchar(); 
+    		fgets(newResident->name, sizeof(newResident->name), stdin);
+    		newResident->name[strcspn(newResident->name, "\n")] = 0; 
+			break;
+		case 2:
+			int newAge;
+			printf("Enter new Age: ");
+    		scanf("%d", &newAge);
+    		newResident->age = newAge;
+			break;
+		case 3:
+			char newGender;
+			printf("Gender (M/F): ");
+    		scanf(" %c", &newGender); 
+    		newResident->gender = toupper(newGender);
+			break;
+		case 4:
+			return;
+			break;
+		
+	}
+}
+
 void manageResident(){
 	int manageChoice;
 	printf("\n[1]. Add");
@@ -258,7 +315,7 @@ void manageResident(){
 			addResident();
 			break;
 		case 2:
-			//editResident();
+			editResident();
 			break;
 		case 3:
 			deleteResident();
@@ -307,11 +364,6 @@ void displayResidents(){
         current = current->next;
     }
 }
-
-void editResident(){
-	
-}
-
 
 void freeQueue(Queue* queue) {
     DocumentRequest* current = queue->front;
