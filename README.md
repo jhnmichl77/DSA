@@ -1,1 +1,2 @@
-Wla pay inventory ug search
+Lacking: Inventory
+Additionals: Status in documentreq
