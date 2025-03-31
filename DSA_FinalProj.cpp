@@ -400,10 +400,11 @@ void displayResidents(){
 }
 
 void blotterReport(){
-	char text[10000];
+	char blotterReport[10000];
 	char nameOfComplainant[50];
 	int complainantID;
 	char dateTime[30];
+	char recorder[50];
 	formatTime(dateTime);
 	printf("Complainant ID: ");
 	scanf("%d", &complainantID);
@@ -421,7 +422,17 @@ void blotterReport(){
 		return;
 	}
 	printf("Date reported: %s", dateTime);
-		
+	printf("\nBLOTTER REPORT: \n");
+	getchar(); 
+    fgets(blotterReport, sizeof(blotterReport), stdin);
+    blotterReport[strcspn(blotterReport, "\n")] = 0; 
+	
+	printf("\nRecorded by: ");
+	getchar(); 
+    fgets(recorder, sizeof(recorder), stdin);
+    recorder[strcspn(recorder, "\n")] = 0; 
+    
+    printf("\nReport Successfully Saved");
 }
 
 void freeQueue(Queue* queue) {
