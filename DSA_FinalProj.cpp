@@ -148,11 +148,24 @@ void deleteRequest(Queue* queue) {
     }
 }
 
+void formatTime(char *output){
+	time_t rawTime;
+	struct tm * timeinfo;
+	
+	time(&rawTime);
+	timeinfo = localtime (&rawTime);
+	
+	sprintf(output, "%d/%d/%d %d:%d:%d", timeinfo->tm_mon + 1,
+			timeinfo->tm_mday,timeinfo->tm_year + 1900,
+            timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+	
+}
 void documentsRequestOrder(Queue* queue) {
     int choice;
     char documentName[100];
-char residentName[100];
-    char dateAdded[20];
+	char residentName[100];
+    char dateAdded[30];
+    formatTime(dateAdded);
     do {
         printf("\nDocument Request Order:\n");
         printf("1. Add Document Request\n");
@@ -170,11 +183,9 @@ char residentName[100];
                 printf("Enter resident name: ");
                 fgets(residentName, sizeof(residentName), stdin);
                 residentName[strcspn(residentName, "\n")] = 0;
-                printf("Enter date added (e.g., YYYY-MM-DD): ");
-                fgets(dateAdded, sizeof(dateAdded), stdin);
-                dateAdded[strcspn(dateAdded, "\n")] = 0;
+                printf("Date Requested: %s", dateAdded);
                 enqueue(queue, documentName, residentName, dateAdded);
-                printf("Document request added.\n");
+                printf("\nDocument request added.\n");
                 break;
             case 2:
                 viewRequests(queue);
@@ -329,8 +340,9 @@ void userDashboard(){
     	printf("\n[2]. Manage Residents");//add, edit, delete resident data
     	printf("\n[3]. Search Residents");//search resident or (inventory)
     	printf("\n[4]. Documents Request Order");
-    	printf("\n[5]. Manage Inventory");
-    	printf("\n[6]. Exit\n");
+    	printf("\n[5]. Blotter Reports");
+    	printf("\n[6]. Manage Inventory");
+    	printf("\n[7]. Exit\n");
 }
 
 void checkRole(){
@@ -363,6 +375,31 @@ void displayResidents(){
         printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c\n", current->id, current->name, current->age, current->gender);
         current = current->next;
     }
+}
+
+void blotterReport(){
+	char text[10000];
+	char nameOfComplainant[50];
+	int complainantID;
+	char dateTime[30];
+	formatTime(dateTime);
+	printf("Complainant ID: ");
+	scanf("%d", &complainantID);
+	printf("Name of Complainant: ");
+	Resident* current = head;
+	while(current!=NULL){
+		if(complainantID==current->id){
+		printf("%s\n", current->name);
+		break;	
+		}
+		current = current->next;
+	}
+	if(current==NULL){
+		printf("\nResident not found!");
+		return;
+	}
+	printf("Date reported: %s", dateTime);
+		
 }
 
 void freeQueue(Queue* queue) {
@@ -403,9 +440,12 @@ int main() {
     			documentsRequestOrder(queue);
     			break;
     		case 5:
-    			
+    			blotterReport();
     			break;
     		case 6:
+    			
+    			break;
+    		case 7:
     			printf("\nByers!");
     			exit(1);
     			break;
