@@ -1,2 +1,3 @@
-Lacking: Inventory
+Lacking: Inventory, Database(Excel)
 Additionals: Status in documentreq
+Additionals: blotter information in displaying resident, filtering in the search list...
