@@ -11,14 +11,14 @@ typedef struct Resident {
     int age;
     char gender;
     struct Resident* next;
-    struct BlotterReport* blotterReports; // Pointer to the first blotter report for this resident
+    struct BlotterReport* blotterReports; 
 } Resident;
 
 typedef struct BlotterReport {
     char report[1000];
     char dateTime[30];
     char recorder[50];
-    struct BlotterReport* next; // Pointer to the next blotter report
+    struct BlotterReport* next; 
 } BlotterReport;
 
 Resident* head = NULL;
@@ -230,7 +230,6 @@ void searchResident() {
         if (strstr(current->name, searchName) != NULL) {
             printf("\nID: %d \nName: %s \nAge: %d \nGender: %c\n", current->id, current->name, current->age, current->gender);
             found = 1;
-            // Check for pending blotter reports
             if (current->blotterReports != NULL) {
                 printf("Pending Blotter Reports:\n");
                 BlotterReport* report = current->blotterReports;
@@ -269,7 +268,7 @@ void addResident() {
     newResident->gender = toupper(residentGender);
     
     newResident->next = head; 
-    newResident->blotterReports = NULL; // Initialize the blotter reports to NULL
+    newResident->blotterReports = NULL; 
     head = newResident;
 
     printf("Resident Added Successfully!\n");
@@ -286,7 +285,6 @@ void deleteResident() {
     
     while (current != NULL) {
         if (current->id == residentID) {
-            // Free any existing blotter reports
             BlotterReport* report = current->blotterReports;
             while (report != NULL) {
                 BlotterReport* temp = report;
@@ -388,7 +386,7 @@ void userDashboard() {
     printf("\n[3]. Search Residents"); // search resident
     printf("\n[4]. Documents Request Order");
     printf("\n[5]. Blotter Reports");
-    printf("\n[6]. Manage Inventory");
+    printf("\n[6]. Manage Inventory"); // not yet implemented
     printf("\n[7]. Exit\n");
 }
 
