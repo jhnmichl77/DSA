@@ -205,7 +205,29 @@ void documentsRequestOrder(Queue* queue) {
 int generateID(){
 	return 1000+rand()%9000;
 }
+void searchResident() {
+    char searchName[50];
+    printf("Enter the name of the resident to search: ");
+    getchar();
+    fgets(searchName, sizeof(searchName), stdin);
+    searchName[strcspn(searchName, "\n")] = 0; 
 
+    Resident* current = head;
+    int found = 0;
+
+    printf("\nSearch Results:\n");
+    while (current != NULL) {
+        if (strstr(current->name, searchName) != NULL) {
+            printf("\nID: %d \nName: %s \nAge: %d \nGender: %c\n", current->id, current->name, current->age, current->gender);
+            found = 1;
+        }
+        current = current->next;
+    }
+
+    if (!found) {
+        printf("No residents found with the name '%s'.\n", searchName);
+    }
+}
 void addResident(){
 	Resident* newResident = (Resident*)malloc(sizeof(Resident));
 	char residentGender;
@@ -434,7 +456,7 @@ int main() {
     			manageResident();
     			break;
     		case 3:
-    			
+    			searchResident();
     			break;
     		case 4:
     			documentsRequestOrder(queue);
