@@ -177,11 +177,11 @@ void documentsRequestOrder(Queue* queue) {
     formatTime(dateAdded);
     do {
         printf("\nDocument Request Order:\n");
-        printf("1. Add Document Request\n");
-        printf("2. View Document Requests\n");
-        printf("3. Delete Document Request\n");
-        printf("4. Back to User Dashboard\n");
-        printf("Enter your choice (1-4): ");
+        printf("[1]. Add Document Request\n");
+        printf("[2]. View Document Requests\n");
+        printf("[3]. Delete Document Request\n");
+        printf("[4]. Back to User Dashboard\n");
+        printf("Enter your choice: ");
         scanf("%d", &choice);
         getchar();
         switch (choice) {
@@ -221,18 +221,24 @@ void searchResident() {
     getchar();
     fgets(searchName, sizeof(searchName), stdin);
     searchName[strcspn(searchName, "\n")] = 0; 
-
-    Resident* current = head;
+	Resident* current = head;
     int found = 0;
-
+    
     printf("\nSearch Results:\n");
     while (current != NULL) {
         if (strstr(current->name, searchName) != NULL) {
-            printf("\nID: %d \nName: %s \nAge: %d \nGender: %c\n", current->id, current->name, current->age, current->gender);
+            int blotterCount = 0;
+            BlotterReport* report = current->blotterReports;
+            while (report != NULL) {
+                blotterCount++;
+                report = report->next;
+            }
+            printf("\nID: %d \nName: %s \nAge: %d \nGender: %c \nPending Blotter: %d\n", 
+                   current->id, current->name, current->age, current->gender, blotterCount);
             found = 1;
             if (current->blotterReports != NULL) {
                 printf("Pending Blotter Reports:\n");
-                BlotterReport* report = current->blotterReports;
+                report = current->blotterReports;
                 while (report != NULL) {
                     printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
                     report = report->next;
@@ -243,12 +249,10 @@ void searchResident() {
         }
         current = current->next;
     }
-
     if (!found) {
         printf("No residents found with the name '%s'.\n", searchName);
     }
 }
-
 void addResident() {
     Resident* newResident = (Resident*)malloc(sizeof(Resident));
     char residentGender;
@@ -294,7 +298,7 @@ void deleteResident() {
             if (prev == NULL) {
                 head = current->next;
             } else {
-                prev->next = current->next;
+                prev->next = current->next; 
             }
             free(current);
             printf("\nResident with ID#: %d has been deleted successfully!\n", residentID);
@@ -308,7 +312,8 @@ void deleteResident() {
 
 void editResident() {
     int residentID, choice;
-    
+     int newAge;
+     char newGender;
     Resident* current = head;
     
     printf("\nEnter Resident ID: ");
@@ -343,13 +348,11 @@ void editResident() {
             current->name[strcspn(current->name, "\n")] = 0; 
             break;
         case 2:
-            int newAge;
             printf("Enter new Age: ");
             scanf("%d", &newAge);
             current->age = newAge;
             break;
         case 3:
-            char newGender;
             printf("Gender (M/F): ");
             scanf(" %c", &newGender); 
             current->gender = toupper(newGender);
@@ -380,27 +383,74 @@ void manageResident() {
     }
 }
 
+void manageBlotterReports() {
+    int choice;
+    do {
+        printf("\nBlotter Report Management:\n");
+        printf("[1]. Add Blotter Report\n");
+        printf("[2]. View Blotter Reports\n");
+        printf("[3]. Back to User Dashboard\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        
+        switch (choice) {
+            case 1:
+                blotterReport();
+                break;
+            case 2:
+                viewBlotterReports();
+                break;
+            case 3:
+                printf("Returning to User Dashboard.\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 3);
+}
+
+void viewBlotterReports() {
+    Resident* current = head;
+    if (current == NULL) {
+        printf("No residents registered.\n");
+        return;
+    }
+
+    printf("\nBlotter Reports:\n");
+    while (current != NULL) {
+        if (current->blotterReports != NULL) {
+            BlotterReport* report = current->blotterReports;
+            printf("Resident ID: %d, Name: %s\n", current->id, current->name);
+            while (report != NULL) {
+                printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
+                report = report->next;
+            }
+        }
+        current = current->next;
+    }
+}
+
 void userDashboard() {
     printf("\n[1]. Display Residents"); // display registered residents
     printf("\n[2]. Manage Residents"); // add, edit, delete resident data
     printf("\n[3]. Search Residents"); // search resident
-    printf("\n[4]. Documents Request Order");
-    printf("\n[5]. Blotter Reports");
-    printf("\n[6]. Manage Inventory"); // not yet implemented
+    printf("\n[4]. Documents Request Order"); //add, view, delete documents
+    printf("\n[5]. Blotter Reports"); // add, view blotter reports
+    printf("\n[6]. Manage Inventory"); //bims inventory
     printf("\n[7]. Exit\n");
 }
 
 void checkRole() {
-    char captainUser [20] = "Admin.123", input[20];
+    char captainUser  [20] = "Admin.123", input[20];
     char secretary[20] = "SECRETARY";
     
     do {
         printf("Enter Password: ");
         scanf("%19s", input);  
-    } while (strcmp(input, captainUser ) != 0 && strcmp(input, secretary) != 0);
+    } while (strcmp(input, captainUser  ) != 0 && strcmp(input, secretary) != 0);
     
     char role[20];
-    if (strcmp(input, captainUser ) == 0) {
+    if (strcmp(input, captainUser  ) == 0) {
         strcpy(role, "Captain");
     } else {
         strcpy(role, "Secretary");
@@ -417,7 +467,15 @@ void displayResidents() {
     
     printf("\nResidents List:\n");
     while (current != NULL) {
-        printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c\n", current->id, current->name, current->age, current->gender);
+        int blotterCount = 0;
+        BlotterReport* report = current->blotterReports;
+        while (report != NULL) {
+            blotterCount++;
+            report = report->next;
+        }
+        
+        printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c \t Pending Blotter: %d\n", 
+               current->id, current->name, current->age, current->gender, blotterCount);
         current = current->next;
     }
 }
@@ -444,7 +502,6 @@ void blotterReport() {
         printf("\nResident not found!");
         return;
     }
-
     printf("Date reported: %s", dateTime);
     printf("\nBLOTTER REPORT: \n");
     getchar(); 
@@ -462,7 +519,6 @@ void blotterReport() {
     strcpy(newReport->recorder, recorder);
     newReport->next = current->blotterReports; 
     current->blotterReports = newReport;
-
     printf("\nReport Successfully Saved\n");
 }
 
@@ -517,7 +573,7 @@ int main() {
                 documentsRequestOrder(queue);
                 break;
             case 5:
-                blotterReport();
+                manageBlotterReports(); 
                 break;
             case 6:
             	//bimsInventory();
