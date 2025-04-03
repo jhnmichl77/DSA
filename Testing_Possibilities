@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_ITEMS 100 
+#define MAX_NAME_LENGTH 50  
+
+
+typedef struct {
+    char name[MAX_NAME_LENGTH];
+    int quantity;
+    float price;
+} Item;
+
+void displayInventory(Item inventory[], int itemCount);
+void addItem(Item inventory[], int *itemCount, const char *name, int quantity, float price);
+
+int main() {
+    Item inventory[MAX_ITEMS]; 
+    int itemCount = 0;  
+
+    addItem(inventory, &itemCount, "Laptop", 10, 899.99);
+    addItem(inventory, &itemCount, "Smartphone", 20, 499.99);
+    addItem(inventory, &itemCount, "Headphones", 50, 79.99);
+    displayInventory(inventory, itemCount);
+
+    return 0;
+}
+
+void addItem(Item inventory[], int *itemCount, const char *name, int quantity, float price) {
+    if (*itemCount < MAX_ITEMS) {
+        strncpy(inventory[*itemCount].name, name, MAX_NAME_LENGTH);
+        inventory[*itemCount].quantity = quantity;
+        inventory[*itemCount].price = price;
+        (*itemCount)++;
+    } else {
+        printf("Inventory is full. Cannot add more items.\n");
+    }
+}
+
+void displayInventory(Item inventory[], int itemCount) {
+	int i;
+    printf("\n+----------------------+------------+------------+\n");
+    printf("| %-20s | %-10s | %-10s |\n", "Item Name", "Quantity", "Price");
+    printf("+----------------------+------------+------------+\n");
+
+    for ( i = 0; i < itemCount; i++) {
+        printf("| %-20s | %-10d | %-10.2f |\n", inventory[i].name, inventory[i].quantity, inventory[i].price);
+        printf("+----------------------+------------+------------+\n");
+    }
+}
