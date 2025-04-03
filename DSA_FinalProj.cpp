@@ -21,7 +21,16 @@ typedef struct BlotterReport {
     struct BlotterReport* next; 
 } BlotterReport;
 
+typedef struct Item{
+	int id;
+	char itemName[20];
+	int itemQuantity;
+	int availableQuantity;
+	struct Item* next;
+}Item;
+
 Resident* head = NULL;
+Item* headItem = NULL;
 
 typedef struct DocumentRequest {
     char documentName[100];
@@ -253,6 +262,7 @@ void searchResident() {
         printf("No residents found with the name '%s'.\n", searchName);
     }
 }
+
 void addResident() {
     Resident* newResident = (Resident*)malloc(sizeof(Resident));
     char residentGender;
@@ -522,6 +532,133 @@ void blotterReport() {
     printf("\nReport Successfully Saved\n");
 }
 
+void inventoryDisplay(){
+    Item* currentItem = headItem;
+    
+    if(currentItem == NULL){
+        printf("\nNo Item available for display");
+        return;
+    }
+    
+    printf("\n+------------+----------------------+------------+-------------------+\n");
+    printf("| %-10s | %-20s | %-10s | %-10s |\n", "Item ID", "Item Name", "Quantity", "Available");
+    printf("+------------+----------------------+------------+-------------------+\n");
+    
+    while(currentItem != NULL){
+        printf("| %-10d | %-20s | %-10d | %-10d |\n", currentItem->id, currentItem->itemName, currentItem->itemQuantity, currentItem->availableQuantity);
+        printf("+------------+----------------------+------------+-------------------+\n");
+        currentItem = currentItem->next;
+    }    
+}
+
+void addItem(){
+	
+	Item* item = (Item*)malloc(sizeof(Item));
+	
+	int itemID = generateID();
+	item->id = itemID;
+	
+	printf("Item Name: ");
+	getchar(); 
+    fgets(item->itemName, sizeof(item->itemName), stdin);
+    item->itemName[strcspn(item->itemName, "\n")] = 0;
+	
+	printf("Quantity: ");
+	scanf("%d", &item->itemQuantity);
+	
+	item->next = headItem;
+    headItem = item;
+
+    printf("Item Added Successfully!\n");
+	
+	 
+}
+
+void deleteItem(){
+	inventoryDisplay();
+	int deleteItemId;
+	
+	printf("ItemID: ");
+	scanf("%d", &deleteItemId);
+	
+	Item* current = headItem;
+	Item* prev = NULL;
+	
+	while(current!=NULL){
+		if(current->id == deleteItemId){
+			if (prev == NULL) {
+                headItem = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+			printf("Item %d successfully delete!", deleteItemId);
+			return;
+		}
+		prev = current;
+    	current = current->next;
+	}
+		
+	printf("Item %d not found in the list.\n", deleteItemId);
+}
+
+void editItem(){
+	
+	inventoryDisplay();
+	
+	int editResidentId, choice;
+	
+	Item* current = headItem;
+	
+	printf("Item ID: ");
+	scanf("%d", &editResidentId);
+	
+	while(current!=NULL){
+		if(current->id==editResidentId){
+			printf("\nChoose Which to edit: ");
+			printf("[1]. Item Name");
+			printf("[2]. Item Quantity");
+			printf("Choice: ");
+			scanf("%d", choice);
+			
+			switch(choice){
+				case 1:
+					printf("Item Name: ");
+					getchar(); 
+    				fgets(current->itemName, sizeof(current->itemName), stdin);
+    				current->itemName[strcspn(current->itemName, "\n")] = 0;
+    				break;
+    			case 2:
+    				printf("Item Quantity: ");
+    				scanf("%d", &current->itemQuantity);
+    				break;
+			}
+		}
+	}
+}
+
+void inventoryManage(){
+	inventoryDisplay();
+	
+	int manageChoice;
+    printf("\n[1]. Add");
+    printf("\n[2]. Edit");
+    printf("\n[3]. Delete\n");
+    printf("\nEnter Choice: ");
+    scanf("%d", &manageChoice);
+    switch (manageChoice) {
+        case 1: 
+            addItem();
+            break;
+        case 2:
+            editItem();
+            break;
+        case 3:
+            deleteItem();
+            break;
+    }
+}
+
 void freeQueue(Queue* queue) {
     DocumentRequest* current = queue->front;
     DocumentRequest* next;
@@ -576,7 +713,7 @@ int main() {
                 manageBlotterReports(); 
                 break;
             case 6:
-            	//bimsInventory();
+            	inventoryManage();
                 break;
             case 7:
                 printf("\nByers!");
