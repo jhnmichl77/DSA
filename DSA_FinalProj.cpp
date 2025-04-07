@@ -246,7 +246,7 @@ void searchResident() {
                    current->id, current->name, current->age, current->gender, blotterCount);
             found = 1;
             if (current->blotterReports != NULL) {
-                printf("Pending Blotter Reports:\n");
+                printf("Blotter Description:\n");
                 report = current->blotterReports;
                 while (report != NULL) {
                     printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
@@ -372,6 +372,48 @@ void editResident() {
             break;
     }
 }
+void blotterReport() {
+    char blotterReport[1000];
+    char dateTime[30];
+    char recorder[50];
+    int complainantID;
+
+    formatTime(dateTime);
+    printf("Complainant ID: ");
+    scanf("%d", &complainantID);
+
+    Resident* current = head;
+    while (current != NULL) {
+        if (complainantID == current->id) {
+            printf("Name of Complainant: %s\n", current->name);
+            break;    
+        }
+        current = current->next;
+    }
+    if (current == NULL) {
+        printf("\nResident not found!");
+        return;
+    }
+    printf("Date reported: %s", dateTime);
+    printf("\nBLOTTER REPORT: \n");
+    getchar(); 
+    fgets(blotterReport, sizeof(blotterReport), stdin);
+    blotterReport[strcspn(blotterReport, "\n")] = 0; 
+
+    printf("\nRecorded by: ");
+    getchar(); 
+    fgets(recorder, sizeof(recorder), stdin);
+    recorder[strcspn(recorder, "\n")] = 0; 
+
+    BlotterReport* newReport = (BlotterReport*)malloc(sizeof(BlotterReport));
+    strcpy(newReport->report, blotterReport);
+    strcpy(newReport->dateTime, dateTime);
+    strcpy(newReport->recorder, recorder);
+    newReport->next = current->blotterReports; 
+    current->blotterReports = newReport;
+    printf("\nReport Successfully Saved\n");
+}
+
 
 void manageResident() {
     int manageChoice;
@@ -390,6 +432,26 @@ void manageResident() {
         case 3:
             deleteResident();
             break;
+    }
+}
+void viewBlotterReports() {
+    Resident* current = head;
+    if (current == NULL) {
+        printf("No residents registered.\n");
+        return;
+    }
+
+    printf("\nBlotter Reports:\n");
+    while (current != NULL) {
+        if (current->blotterReports != NULL) {
+            BlotterReport* report = current->blotterReports;
+            printf("Resident ID: %d, Name: %s\n", current->id, current->name);
+            while (report != NULL) {
+                printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
+                report = report->next;
+            }
+        }
+        current = current->next;
     }
 }
 
@@ -419,26 +481,6 @@ void manageBlotterReports() {
     } while (choice != 3);
 }
 
-void viewBlotterReports() {
-    Resident* current = head;
-    if (current == NULL) {
-        printf("No residents registered.\n");
-        return;
-    }
-
-    printf("\nBlotter Reports:\n");
-    while (current != NULL) {
-        if (current->blotterReports != NULL) {
-            BlotterReport* report = current->blotterReports;
-            printf("Resident ID: %d, Name: %s\n", current->id, current->name);
-            while (report != NULL) {
-                printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
-                report = report->next;
-            }
-        }
-        current = current->next;
-    }
-}
 
 void userDashboard() {
     printf("\n[1]. Display Residents"); // display registered residents
@@ -488,48 +530,6 @@ void displayResidents() {
                current->id, current->name, current->age, current->gender, blotterCount);
         current = current->next;
     }
-}
-
-void blotterReport() {
-    char blotterReport[1000];
-    char dateTime[30];
-    char recorder[50];
-    int complainantID;
-
-    formatTime(dateTime);
-    printf("Complainant ID: ");
-    scanf("%d", &complainantID);
-
-    Resident* current = head;
-    while (current != NULL) {
-        if (complainantID == current->id) {
-            printf("Name of Complainant: %s\n", current->name);
-            break;    
-        }
-        current = current->next;
-    }
-    if (current == NULL) {
-        printf("\nResident not found!");
-        return;
-    }
-    printf("Date reported: %s", dateTime);
-    printf("\nBLOTTER REPORT: \n");
-    getchar(); 
-    fgets(blotterReport, sizeof(blotterReport), stdin);
-    blotterReport[strcspn(blotterReport, "\n")] = 0; 
-
-    printf("\nRecorded by: ");
-    getchar(); 
-    fgets(recorder, sizeof(recorder), stdin);
-    recorder[strcspn(recorder, "\n")] = 0; 
-
-    BlotterReport* newReport = (BlotterReport*)malloc(sizeof(BlotterReport));
-    strcpy(newReport->report, blotterReport);
-    strcpy(newReport->dateTime, dateTime);
-    strcpy(newReport->recorder, recorder);
-    newReport->next = current->blotterReports; 
-    current->blotterReports = newReport;
-    printf("\nReport Successfully Saved\n");
 }
 
 void inventoryDisplay(){
