@@ -413,9 +413,26 @@ void blotterReport() {
     current->blotterReports = newReport;
     printf("\nReport Successfully Saved\n");
 }
+const char* checkRole() {
+    const char captainPassword[] = "Admin.123";
+    const char secretaryPassword[] = "123";
+    char input[20];
+
+    do {
+        printf("Enter Password: ");
+        fgets(input, sizeof(input), stdin);
+        input[strcspn(input, "\n")] = 0; 
+    } while (strcmp(input, captainPassword) != 0 && strcmp(input, secretaryPassword) != 0);
+
+    if (strcmp(input, captainPassword) == 0) {
+        return "Captain";
+    } else {
+        return "Secretary";
+    }
+}
 
 
-void manageResident() {
+void manageResident(const char* role) {
     int manageChoice;
     printf("\n[1]. Add");
     printf("\n[2]. Edit");
@@ -427,10 +444,18 @@ void manageResident() {
             addResident();
             break;
         case 2:
-            editResident();
+            if (strcmp(role, "Captain") == 0) {
+                editResident();	
+            } else {
+                printf("Access denied!");
+            }
             break;
         case 3:
-            deleteResident();
+        	if(strcmp(role, "Captain")==0){
+        	deleteResident();	
+			} else {
+                printf("Access denied!");
+            }          
             break;
     }
 }
@@ -480,8 +505,6 @@ void manageBlotterReports() {
         }
     } while (choice != 3);
 }
-
-
 void userDashboard() {
     printf("\n[1]. Display Residents"); // display registered residents
     printf("\n[2]. Manage Residents"); // add, edit, delete resident data
@@ -490,23 +513,6 @@ void userDashboard() {
     printf("\n[5]. Blotter Reports"); // add, view blotter reports
     printf("\n[6]. Manage Inventory"); //bims inventory
     printf("\n[7]. Exit\n");
-}
-
-void checkRole() {
-    char captainUser  [20] = "Admin.123", input[20];
-    char secretary[20] = "SECRETARY";
-    
-    do {
-        printf("Enter Password: ");
-        scanf("%19s", input);  
-    } while (strcmp(input, captainUser  ) != 0 && strcmp(input, secretary) != 0);
-    
-    char role[20];
-    if (strcmp(input, captainUser  ) == 0) {
-        strcpy(role, "Captain");
-    } else {
-        strcpy(role, "Secretary");
-    }    
 }
 
 void displayResidents() {
@@ -602,7 +608,7 @@ void deleteItem(){
 	printf("Item %d not found in the list.\n", deleteItemId);
 }
 
-void editItem(){
+void editItem(){x
 	
 	inventoryDisplay();
 	
@@ -619,7 +625,7 @@ void editItem(){
 			printf("[1]. Item Name");
 			printf("[2]. Item Quantity");
 			printf("Choice: ");
-			scanf("%d", choice);
+			scanf("%d", &choice);
 			
 			switch(choice){
 				case 1:
@@ -633,6 +639,7 @@ void editItem(){
     				scanf("%d", &current->itemQuantity);
     				break;
 			}
+			current= current->next;
 		}
 	}
 }
@@ -690,7 +697,8 @@ int main() {
     Queue* queue = createQueue();
     int choice;
 
-    checkRole();
+    const char* role = checkRole();
+    
     do {
         userDashboard();
         printf("\nEnter your choice: ");
@@ -701,7 +709,7 @@ int main() {
                 displayResidents();
                 break;
             case 2:
-                manageResident();
+                manageResident(role);
                 break;
             case 3:
                 searchResident();
