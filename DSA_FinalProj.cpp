@@ -44,6 +44,105 @@ typedef struct Queue {
     DocumentRequest* rear;
 } Queue;
 
+void enqueue(Queue* queue, const char* documentName, const char* residentName, const char* dateAdded);
+
+void saveResidents(const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("ERROR OPENING FILE!\n");
+        return;
+    }
+
+    Resident* current = head;
+    while (current != NULL) {
+        fprintf(file, "RESIDENT,%d,%s,%d,%c\n", current->id, current->name, current->age, current->gender);
+
+        BlotterReport* report = current->blotterReports;
+        while (report != NULL) {
+            fprintf(file, "BLOTTER,%s,%s,%s\n", report->report, report->dateTime, report->recorder);
+            report = report->next;
+        }
+
+        fprintf(file, "ENDRESIDENT\n");
+        current = current->next;
+    }
+
+    fclose(file);
+    printf("Residents (and blotters) saved successfully to %s\n", filename);
+}
+
+void loadResidents(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("ERROR OPENING FILE FOR READING!\n");
+        return;
+    }
+
+    char line[1200];
+    Resident* currentResident = NULL;
+
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = 0; 
+
+        if (strncmp(line, "RESIDENT,", 9) == 0) {
+            Resident* newResident = (Resident*)malloc(sizeof(Resident));
+            sscanf(line, "RESIDENT,%d,%49[^,],%d,%c", &newResident->id, newResident->name, &newResident->age, &newResident->gender);
+            newResident->next = head;
+            newResident->blotterReports = NULL;
+            head = newResident;
+            currentResident = newResident;
+
+        } else if (strncmp(line, "BLOTTER,", 8) == 0 && currentResident != NULL) {
+            BlotterReport* report = (BlotterReport*)malloc(sizeof(BlotterReport));
+            sscanf(line, "BLOTTER,%999[^,],%29[^,],%49[^\n]", report->report, report->dateTime, report->recorder);
+            report->next = currentResident->blotterReports;
+            currentResident->blotterReports = report;
+
+        } else if (strcmp(line, "ENDRESIDENT") == 0) {
+            currentResident = NULL;
+        }
+    }
+
+    fclose(file);
+    printf("Residents and blotters loaded from %s\n", filename);
+}
+
+void saveRequest(Queue* queue, const char* filename){
+	FILE* file = fopen(filename, "w");
+	if(file == NULL){
+		printf("ERROR OPENING FILE!\n");
+		return;
+	}
+	
+	DocumentRequest* current = queue->front;
+	while(current!=NULL){
+		fprintf(file, "%s, %s, %s", current->documentName,current->residentName,current->dateAdded);
+		current = current->next;
+	}
+	fclose(file);
+	printf("Document Request Save Successfully");
+}
+
+void loadRequest(Queue* queue, const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("No document request file found at %s.\n", filename);
+        return;
+    }
+
+    char line[300];
+    char documentName[100], residentName[100], dateAdded[30];
+
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = 0; // Remove newline character
+        if (sscanf(line, "%99[^,],%99[^,],%29[^\n]", documentName, residentName, dateAdded) == 3) {
+            enqueue(queue, documentName, residentName, dateAdded);
+        }
+    }
+
+    fclose(file);
+    printf("Document requests loaded from %s\n", filename);
+}
 Queue* createQueue() {
     Queue* queue = (Queue*)malloc(sizeof(Queue));
     queue->front = NULL;
@@ -726,6 +825,9 @@ int main() {
     Queue* queue = createQueue();
     int choice;
 
+	loadResidents("residents.txt");
+	loadRequest(queue, "requests.txt");
+	
     const char* role = checkRole();
     
     do {
@@ -756,6 +858,8 @@ int main() {
             	clearScreen();
             	break;
             case 8:
+		saveResidents("residents.txt");
+            	saveRequest(queue, "requests.txt");
                 printf("\nGoodbye!");
                 freeQueue(queue);
                 freeResidents();
