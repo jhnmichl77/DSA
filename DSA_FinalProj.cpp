@@ -150,6 +150,48 @@ Queue* createQueue() {
     return queue;
 }
 
+void saveInventory(const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Error saving inventory file!\n");
+        return;
+    }
+
+    Item* current = headItem;
+    while (current != NULL) {
+        fprintf(file, "%d,%s,%d,%d\n", current->id, current->itemName, current->itemQuantity, current->availableQuantity);
+        current = current->next;
+    }
+
+    fclose(file);
+    printf("Inventory saved to %s\n", filename);
+}
+
+
+void loadInventory(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("No inventory file found at %s.\n", filename);
+        return;
+    }
+
+    char line[200];
+    while (fgets(line, sizeof(line), file)) {
+        Item* item = (Item*)malloc(sizeof(Item));
+        if (sscanf(line, "%d,%19[^,],%d,%d", &item->id, item->itemName, &item->itemQuantity, &item->availableQuantity) != 4) {
+            free(item);
+            continue;
+        }
+        item->next = headItem;
+        headItem = item;
+    }
+
+    fclose(file);
+    printf("Inventory loaded from %s\n", filename);
+}
+
+
+
 void enqueue(Queue* queue, const char* documentName, const char* residentName, const char* dateAdded) {
     DocumentRequest* newRequest = (DocumentRequest*)malloc(sizeof(DocumentRequest));
     strcpy(newRequest->documentName, documentName);
@@ -700,6 +742,8 @@ void addItem(){
 	printf("Quantity: ");
 	scanf("%d", &item->itemQuantity);
 	
+	item->availableQuantity = item->itemQuantity; 
+	
 	item->next = headItem;
     headItem = item;
 
@@ -827,6 +871,7 @@ int main() {
 
 	loadResidents("residents.txt");
 	loadRequest(queue, "requests.txt");
+	loadInventory("inventory.txt"); 
 	
     const char* role = checkRole();
     
@@ -858,8 +903,9 @@ int main() {
             	clearScreen();
             	break;
             case 8:
-		saveResidents("residents.txt");
+				saveResidents("residents.txt");
             	saveRequest(queue, "requests.txt");
+            	saveInventory("inventory.txt");
                 printf("\nGoodbye!");
                 freeQueue(queue);
                 freeResidents();
