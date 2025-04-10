@@ -65,7 +65,6 @@ void enqueue(Queue* queue, const char* documentName, const char* residentName, c
         queue->rear = newRequest;
     }
 }
-
 void viewRequests(Queue* queue) {
     DocumentRequest* current = queue->front;
     if (current == NULL) {
@@ -88,7 +87,13 @@ void viewRequests(Queue* queue) {
         count++;
     }
 }
-
+void clearScreen() {
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear"); 
+    #endif
+}
 void deleteRequest(Queue* queue) {
     if (queue->front == NULL) {
         printf("No document requests to delete.\n");
@@ -213,6 +218,7 @@ void documentsRequestOrder(Queue* queue) {
                 break;
             case 4:
                 printf("Returning to User Dashboard.\n");
+                clearScreen();
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
@@ -368,6 +374,7 @@ void editResident() {
             current->gender = toupper(newGender);
             break;
         case 4:
+        	clearScreen();
             return;
             break;
     }
@@ -413,11 +420,22 @@ void blotterReport() {
     current->blotterReports = newReport;
     printf("\nReport Successfully Saved\n");
 }
+void printCentered(const char* message) {
+    int consoleWidth = 120;
+    int messageLength = strlen(message);
+    int padding = (consoleWidth - messageLength) / 2;
+    for (int i = 0; i < padding; i++) {
+        printf(" ");
+    }
+    printf("%s\n", message);
+}
 const char* checkRole() {
     const char captainPassword[] = "Admin.123";
     const char secretaryPassword[] = "123";
     char input[20];
-
+	printCentered("==============================="); 	
+    printCentered("Please log in to the account!"); 
+    printCentered("===============================\n"); 
     do {
         printf("Enter Password: ");
         fgets(input, sizeof(input), stdin);
@@ -425,18 +443,20 @@ const char* checkRole() {
     } while (strcmp(input, captainPassword) != 0 && strcmp(input, secretaryPassword) != 0);
 
     if (strcmp(input, captainPassword) == 0) {
+        printCentered("Welcome Captain!"); 
         return "Captain";
     } else {
+        printCentered("Welcome Secretary!"); 
         return "Secretary";
     }
 }
-
 
 void manageResident(const char* role) {
     int manageChoice;
     printf("\n[1]. Add");
     printf("\n[2]. Edit");
-    printf("\n[3]. Delete\n");
+    printf("\n[3]. Delete");
+    printf("\n[4]. Return\n");
     printf("\nEnter Choice: ");
     scanf("%d", &manageChoice);
     switch (manageChoice) {
@@ -456,6 +476,10 @@ void manageResident(const char* role) {
 			} else {
                 printf("Access denied!");
             }          
+            break;
+        case 4:
+        	printf("Returning to User Dashboard.\n");
+            clearScreen();
             break;
     }
 }
@@ -486,7 +510,7 @@ void manageBlotterReports() {
         printf("\nBlotter Report Management:\n");
         printf("[1]. Add Blotter Report\n");
         printf("[2]. View Blotter Reports\n");
-        printf("[3]. Back to User Dashboard\n");
+        printf("[3]. Return\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
         
@@ -499,6 +523,7 @@ void manageBlotterReports() {
                 break;
             case 3:
                 printf("Returning to User Dashboard.\n");
+                clearScreen();
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
@@ -506,13 +531,17 @@ void manageBlotterReports() {
     } while (choice != 3);
 }
 void userDashboard() {
+	printCentered("==============================="); 
+	printCentered("Dashboard");
+	printCentered("===============================\n"); 
     printf("\n[1]. Display Residents"); // display registered residents
     printf("\n[2]. Manage Residents"); // add, edit, delete resident data
     printf("\n[3]. Search Residents"); // search resident
     printf("\n[4]. Documents Request Order"); //add, view, delete documents
     printf("\n[5]. Blotter Reports"); // add, view blotter reports
     printf("\n[6]. Manage Inventory"); //bims inventory
-    printf("\n[7]. Exit\n");
+    printf("\n[7]. Clear Text Screen"); // clear texts in the screen
+    printf("\n[8]. Exit\n");
 }
 
 void displayResidents() {
@@ -532,7 +561,7 @@ void displayResidents() {
             report = report->next;
         }
         
-        printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c \t Pending Blotter: %d\n", 
+        printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c \t Pending Blotter: %d\n\n", 
                current->id, current->name, current->age, current->gender, blotterCount);
         current = current->next;
     }
@@ -608,7 +637,7 @@ void deleteItem(){
 	printf("Item %d not found in the list.\n", deleteItemId);
 }
 
-void editItem(){x
+void editItem(){
 	
 	inventoryDisplay();
 	
@@ -718,17 +747,20 @@ int main() {
                 documentsRequestOrder(queue);
                 break;
             case 5:
-                manageBlotterReports(); 
+                manageBlotterReports();            
                 break;
             case 6:
-            	inventoryManage();
+            	inventoryManage();      
                 break;
             case 7:
-                printf("\nByers!");
+            	clearScreen();
+            	break;
+            case 8:
+                printf("\nGoodbye!");
                 freeQueue(queue);
                 freeResidents();
                 exit(1);
                 break;
         }
-    } while (choice != 7);
+    } while (choice != 8);
 }
