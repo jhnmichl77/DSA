@@ -4,38 +4,49 @@
 #include <time.h>
 #include <ctype.h>
 #include <conio.h>
+#include <windows.h>
+
+#define MAX_NAME_LENGTH 50
+#define MAX_REPORT_LENGTH 1000
+#define MAX_DATETIME_LENGTH 30
+#define MAX_RECORDER_LENGTH 50
+#define MAX_DOCUMENT_NAME_LENGTH 100
+#define MAX_STATUS_LENGTH 20
+#define MAX_ITEM_NAME_LENGTH 20
 
 typedef struct Resident {
     int id;
-    char name[50];
+    char name[MAX_NAME_LENGTH];
     int age;
     char gender;
     struct Resident* next;
-    struct BlotterReport* blotterReports; 
+    struct BlotterReport* blotterReports;
 } Resident;
 
 typedef struct BlotterReport {
-    char report[1000];
-    char dateTime[30];
-    char recorder[50];
-    struct BlotterReport* next; 
+    char report[MAX_REPORT_LENGTH];
+    char dateTime[MAX_DATETIME_LENGTH];
+    char recorder[MAX_RECORDER_LENGTH];
+    struct BlotterReport* next;
 } BlotterReport;
 
-typedef struct Item{
-	int id;
-	char itemName[20];
-	int itemQuantity;
-	int availableQuantity;
-	struct Item* next;
-}Item;
+typedef struct Item {
+    int id;
+    char itemName[MAX_ITEM_NAME_LENGTH];
+    int itemQuantity;
+    int availableQuantity;
+    struct Item* next;
+} Item;
 
 Resident* head = NULL;
 Item* headItem = NULL;
 
 typedef struct DocumentRequest {
-    char documentName[100];
-    char residentName[100];
-    char dateAdded[20];
+    int requestId;
+    char documentName[MAX_DOCUMENT_NAME_LENGTH];
+    char residentName[MAX_NAME_LENGTH];
+    char dateAdded[MAX_DATETIME_LENGTH];
+    char status[MAX_STATUS_LENGTH];
     struct DocumentRequest* next;
 } DocumentRequest;
 
@@ -45,6 +56,883 @@ typedef struct Queue {
 } Queue;
 
 void enqueue(Queue* queue, const char* documentName, const char* residentName, const char* dateAdded);
+void saveResidents(const char* filename);
+void loadResidents(const char* filename);
+void saveRequest(Queue* queue, const char* filename);
+void loadRequest(Queue* queue, const char* filename);
+Queue* createQueue();
+void saveInventory(const char* filename);
+void loadInventory(const char* filename);
+void viewRequests(Queue* queue);
+void clearScreen();
+void deleteRequest(Queue* queue);
+void formatTime(char* output);
+void documentsRequestOrder(Queue* queue, const char* role);
+int generateID();
+void displayResidents();
+void searchResident();
+void addResident();
+void deleteResident();
+void editResident();
+void blotterReport();
+void printCentered(const char* message);
+const char* checkRole();
+void manageResident(const char* role);
+void viewBlotterReports();
+void manageBlotterReports();
+void userDashboard(const char* role);
+void inventoryDisplay();
+void addItem();
+void deleteItem();
+void editItem();
+void inventoryManage();
+void freeQueue(Queue* queue);
+void freeResidents();
+void freeInventory();
+void freeDocumentRequest(DocumentRequest* request);
+void updateRequestStatus(Queue* queue);
+
+ 
+void freeInventory() {
+    Item* current = headItem;
+    Item* next;
+
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+    headItem = NULL; 
+}
+
+void freeDocumentRequest(DocumentRequest* request) {
+    if (request) {
+        free(request);
+    }
+}
+
+Queue* createQueue() {
+    Queue* queue = (Queue*)malloc(sizeof(Queue));
+    if (queue == NULL) {
+        perror("Memory allocation failed in createQueue");
+        exit(EXIT_FAILURE);
+    }
+    queue->front = NULL;
+    queue->rear = NULL;
+    return queue;
+}
+
+void enqueue(Queue* queue, const char* documentName, const char* residentName, const char* dateAdded) {
+    DocumentRequest* newRequest = (DocumentRequest*)malloc(sizeof(DocumentRequest));
+    if (newRequest == NULL) {
+        perror("Memory allocation failed in enqueue");
+        exit(EXIT_FAILURE);
+    }
+    newRequest->requestId = generateID();
+    strncpy(newRequest->documentName, documentName, MAX_DOCUMENT_NAME_LENGTH - 1);
+    newRequest->documentName[MAX_DOCUMENT_NAME_LENGTH - 1] = '\0';
+    strncpy(newRequest->residentName, residentName, MAX_NAME_LENGTH - 1);
+    newRequest->residentName[MAX_NAME_LENGTH - 1] = '\0';
+    strncpy(newRequest->dateAdded, dateAdded, MAX_DATETIME_LENGTH - 1);
+    newRequest->dateAdded[MAX_DATETIME_LENGTH - 1] = '\0';
+    strcpy(newRequest->status, "Pending");
+    newRequest->next = NULL;
+    if (queue->rear == NULL) {
+        queue->front = newRequest;
+        queue->rear = newRequest;
+    } else {
+        queue->rear->next = newRequest;
+        queue->rear = newRequest;
+    }
+}
+
+void viewRequests(Queue* queue) {
+	clearScreen();
+    DocumentRequest* current = queue->front;
+    if (current == NULL) {
+        printf("No document requests available.\n");
+        return;
+    }
+    int count = 1;
+    printf("Document Requests:\n");
+    while (current != NULL) {
+        char suffix[3] = "th";
+        if (count % 10 == 1 && count % 100 != 11) {
+            strcpy(suffix, "st");
+        } else if (count % 10 == 2 && count % 100 != 12) {
+            strcpy(suffix, "nd");
+        } else if (count % 10 == 3 && count % 100 != 13) {
+            strcpy(suffix, "rd");
+        }
+        printf("\n%d%s: \nRequest ID: %d\nDocument Name: %s \nResident Name: %s \nDate Added: %s\n Status: %s\n",
+               count, suffix, current->requestId, current->documentName, current->residentName, current->dateAdded, current->status);
+        current = current->next;
+        count++;
+    }
+}
+
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+void deleteRequest(Queue* queue) {
+    if (queue->front == NULL) {
+        printf("No document requests to delete.\n");
+        return;
+    }
+
+    viewRequests(queue);
+
+    DocumentRequest* current = queue->front;
+    int selectedIndex = 0;
+    int count = 0;
+
+    while (current != NULL) {
+        count++;
+        current = current->next;
+    }
+
+    while (1) {
+        clearScreen();
+        printf("Use arrow keys to select a document. Press ENTER to delete.\n\n");
+
+        current = queue->front;
+        for (int i = 0; i < count; i++) {
+            if (i == selectedIndex) {
+                printf("-> %s\n", current->documentName);
+            } else {
+                printf("   %s\n", current->documentName);
+            }
+            current = current->next;
+        }
+
+        int ch = _getch();
+
+        if (ch == 72) {  
+            selectedIndex--;
+            if (selectedIndex < 0) {
+                selectedIndex = count - 1;
+            }
+        } else if (ch == 80) {  
+            selectedIndex++;
+            if (selectedIndex >= count) {
+                selectedIndex = 0;
+            }
+        } else if (ch == 13) {  
+            current = queue->front;
+            DocumentRequest* previous = NULL;
+            int index = 0;
+
+            while (current != NULL) {
+                if (index == selectedIndex) {
+                    if (previous == NULL) {
+                        queue->front = current->next;
+                        if (queue->front == NULL) {
+                            queue->rear = NULL;
+                        }
+                    } else {
+                        previous->next = current->next;
+                        if (previous->next == NULL) {
+                            queue->rear = previous;
+                        }
+                    }
+                    free(current);
+                    clearScreen();
+                    printf("Document request deleted.\n");
+                    Sleep(1000);
+                    return;
+                }
+                previous = current;
+                current = current->next;
+                index++;
+            }
+        } else if (ch == '0') {
+            clearScreen();
+            printf("Deletion canceled.\n");
+            Sleep(1000);
+            return;
+        }
+    }
+}
+
+void formatTime(char* output) {
+    time_t rawTime;
+    struct tm* timeinfo;
+
+    time(&rawTime);
+    timeinfo = localtime(&rawTime);
+
+    strftime(output, MAX_DATETIME_LENGTH, "%m/%d/%Y %H:%M:%S", timeinfo);
+}
+
+void documentsRequestOrder(Queue* queue, const char* role) {
+	clearScreen();
+    int choice;
+    char documentName[MAX_DOCUMENT_NAME_LENGTH];
+    char residentName[MAX_NAME_LENGTH];
+    char dateAdded[MAX_DATETIME_LENGTH];
+    formatTime(dateAdded);
+    do {
+        printf("\nDocument Request Order:\n");
+        printf("[1]. Add Document Request\n");
+        printf("[2]. View Document Requests\n");
+        printf("[3]. Delete Document Request\n");
+        if (strcmp(role, "Captain") == 0) {
+            printf("[4]. Update Request Status\n");
+            printf("[5]. Back to User Dashboard\n");
+        } else {
+            printf("[4]. Back to User Dashboard\n");
+        }
+        printf("Enter your choice: ");
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input. Please enter a number.\n");
+            while (getchar() != '\n');
+            choice = 0;
+            continue;
+        }
+        getchar();
+        switch (choice) {
+            case 1:
+            	clearScreen();
+                printf("\nEnter document name: ");
+                fgets(documentName, sizeof(documentName), stdin);
+                documentName[strcspn(documentName, "\n")] = 0;
+                printf("Enter resident name: ");
+                fgets(residentName, sizeof(residentName), stdin);
+                residentName[strcspn(residentName, "\n")] = 0;
+                printf("Date Requested: %s", dateAdded);
+                enqueue(queue, documentName, residentName, dateAdded);
+                clearScreen();
+                
+                printf("\nDocument request added.\n");
+                Sleep(2000);
+                clearScreen();
+                break;
+            case 2:
+                viewRequests(queue);
+                break;
+            case 3:
+                deleteRequest(queue);
+                break;
+            case 4:
+                if (strcmp(role, "Captain") == 0) {
+                    updateRequestStatus(queue);
+                    break;
+                }
+            case 5:
+                printf("Returning to User Dashboard.\n");
+                return;
+                clearScreen();
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 4);
+}
+
+int generateID() {
+    return 1000 + rand() % 9000;
+}
+
+void searchResident() {
+	system("cls");
+	displayResidents();
+    char searchName[MAX_NAME_LENGTH];
+    printf("Enter the name of the resident to search: ");
+    getchar();
+    fgets(searchName, sizeof(searchName), stdin);
+    searchName[strcspn(searchName, "\n")] = 0;
+    Resident* current = head;
+    int found = 0;
+
+    printf("\nSearch Results:\n");
+    while (current != NULL) {
+        if (strstr(current->name, searchName) != NULL) {
+            int blotterCount = 0;
+            BlotterReport* report = current->blotterReports;
+            while (report != NULL) {
+                blotterCount++;
+                report = report->next;
+            }
+            printf("\nID: %d \nName: %s \nAge: %d \nGender: %c \nPending Blotter: %d\n",
+                current->id, current->name, current->age, current->gender, blotterCount);
+            found = 1;
+            if (current->blotterReports != NULL) {
+                printf("Blotter Description:\n");
+                report = current->blotterReports;
+                while (report != NULL) {
+                    printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
+                    report = report->next;
+                }
+            } else {
+                printf("No pending blotter reports for this resident.\n");
+            }
+        }
+        current = current->next;
+    }
+    if (!found) {
+        printf("No residents found with the name '%s'.\n", searchName);
+    }
+}
+
+void addResident() {
+    Resident* newResident = (Resident*)malloc(sizeof(Resident));
+    if (newResident == NULL) {
+        perror("Memory allocation failed in addResident");
+        exit(EXIT_FAILURE);
+    }
+    char residentGender;
+    int id = generateID();
+    newResident->id = id;
+    printf("\nResident ID: %d\n", id);
+    printf("Name: ");
+    getchar();
+    fgets(newResident->name, sizeof(newResident->name), stdin);
+    newResident->name[strcspn(newResident->name, "\n")] = 0;
+
+    printf("Age: ");
+    if (scanf("%d", &newResident->age) != 1)
+    {
+        printf("Invalid age entered.\n");
+        free(newResident);
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+
+    printf("Gender (M/F): ");
+    scanf(" %c", &residentGender);
+    newResident->gender = toupper(residentGender);
+
+    newResident->next = head;
+    newResident->blotterReports = NULL;
+    head = newResident;
+
+    printf("Resident Added Successfully!\n");
+    system("cls");
+}
+
+void deleteResident() {
+    int residentID;
+
+    printf("\nEnter Resident ID: ");
+    if (scanf("%d", &residentID) != 1) {
+        printf("Invalid ID entered.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+
+    Resident* current = head;
+    Resident* prev = NULL;
+
+    while (current != NULL) {
+        if (current->id == residentID) {
+            BlotterReport* report = current->blotterReports;
+            while (report != NULL) {
+                BlotterReport* temp = report;
+                report = report->next;
+                free(temp);
+            }
+            if (prev == NULL) {
+                head = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+            printf("\nResident with ID#: %d has been deleted successfully!\n", residentID);
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
+    printf("\nResident with ID#: %d not found!\n", residentID);
+}
+
+void editResident() {
+    int residentID, choice;
+    int newAge;
+    char newGender;
+    Resident* current = head;
+
+    printf("\nEnter Resident ID: ");
+    if (scanf("%d", &residentID) != 1) {
+        printf("Invalid ID entered.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+
+    while (current != NULL) {
+        if (current->id == residentID) {
+            printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c\n", current->id, current->name, current->age, current->gender);
+            break;
+        }
+        current = current->next;
+    }
+
+    if (current == NULL) {
+        printf("\nResident ID not found!\n");
+        return;
+    }
+
+    printf("\nChoose which part:");
+    printf("\n[1]. Name");
+    printf("\n[2]. Age");
+    printf("\n[3]. Gender");
+    printf("\n[4]. Return\n");
+    printf("Enter choice: ");
+    if (scanf("%d", &choice) != 1) {
+        printf("Invalid choice entered.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+
+    switch (choice) {
+        case 1:
+            printf("\nEnter new name: ");
+            getchar();
+            fgets(current->name, sizeof(current->name), stdin);
+            current->name[strcspn(current->name, "\n")] = 0;
+            break;
+        case 2:
+            printf("Enter new Age: ");
+            if (scanf("%d", &newAge) != 1) {
+                printf("Invalid age entered.\n");
+                while (getchar() != '\n');
+                return;
+            }
+            while (getchar() != '\n');
+            current->age = newAge;
+            break;
+        case 3:
+            printf("Gender (M/F): ");
+            scanf(" %c", &newGender);
+            current->gender = toupper(newGender);
+            break;
+        case 4:
+            clearScreen();
+            return;
+            break;
+        default:
+            printf("Invalid choice.\n");
+    }
+}
+
+void blotterReport() {
+	clearScreen();
+    char blotterReport[MAX_REPORT_LENGTH];
+    char dateTime[MAX_DATETIME_LENGTH];
+    char recorder[MAX_RECORDER_LENGTH];
+    int complainantID;
+
+    formatTime(dateTime);
+    printf("Complainant ID: ");
+    if (scanf("%d", &complainantID) != 1) {
+        printf("Invalid Complainant ID.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+
+    Resident* current = head;
+    while (current != NULL) {
+        if (complainantID == current->id) {
+            printf("Name of Complainant: %s\n", current->name);
+            break;
+        }
+        current = current->next;
+    }
+    if (current == NULL) {
+        printf("\nResident not found!");
+        return;
+    }
+    printf("Date reported: %s", dateTime);
+    printf("\nBLOTTER REPORT: \n");
+    getchar();
+    fgets(blotterReport, sizeof(blotterReport), stdin);
+    blotterReport[strcspn(blotterReport, "\n")] = 0;
+
+    printf("\nRecorded by: ");
+    fgets(recorder, sizeof(recorder), stdin);
+    recorder[strcspn(recorder, "\n")] = 0;
+
+    BlotterReport* newReport = (BlotterReport*)malloc(sizeof(BlotterReport));
+    if (newReport == NULL) {
+        perror("Memory allocation failed in blotterReport");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(newReport->report, blotterReport, MAX_REPORT_LENGTH - 1);
+    newReport->report[MAX_REPORT_LENGTH - 1] = '\0';
+    strncpy(newReport->dateTime, dateTime, MAX_DATETIME_LENGTH - 1);
+    newReport->dateTime[MAX_DATETIME_LENGTH - 1] = '\0';
+    strncpy(newReport->recorder, recorder, MAX_RECORDER_LENGTH - 1);
+    newReport->recorder[MAX_RECORDER_LENGTH - 1] = '\0';
+    newReport->next = current->blotterReports;
+    current->blotterReports = newReport;
+    printf("\nReport Successfully Saved\n");
+}
+
+void printCentered(const char* message) {
+    int consoleWidth = 120;
+    int messageLength = strlen(message);
+    int padding = (consoleWidth - messageLength) / 2;
+    for (int i = 0; i < padding; i++) {
+        printf(" ");
+    }
+    printf("%s\n", message);
+}
+
+const char* checkRole() {
+    const char captainPassword[] = "Admin.123";
+    const char secretaryPassword[] = "123";
+    char input[20];
+    printCentered("===============================");
+    printCentered("Please log in to the account!");
+    printCentered("===============================\n");
+    do {
+        printf("Enter Password: ");
+        fgets(input, sizeof(input), stdin);
+        input[strcspn(input, "\n")] = 0;
+        system("cls");
+    } while (strcmp(input, captainPassword) != 0 && strcmp(input, secretaryPassword) != 0);
+
+    if (strcmp(input, captainPassword) == 0) {
+        printCentered("Welcome Captain!");
+        return "Captain";
+    } else {
+        printCentered("Welcome Secretary!");
+        return "Secretary";
+    }
+}
+
+void manageResident(const char* role) {
+	clearScreen();
+    int manageChoice;
+    printf("\n[1]. Add");
+    printf("\n[2]. Edit");
+    printf("\n[3]. Delete");
+    printf("\n[4]. Return\n");
+    printf("Enter Choice: ");
+    if (scanf("%d", &manageChoice) != 1) {
+        printf("Invalid choice entered.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+    switch (manageChoice) {
+        case 1:
+            addResident();
+            break;
+        case 2:
+            if (strcmp(role, "Captain") == 0) {
+                editResident();
+            } else {
+                printf("\nAccess denied!");
+                printf("\n");
+                clearScreen();
+                
+            }
+            break;
+        case 3:
+            if (strcmp(role, "Captain") == 0) {
+                deleteResident();
+            } else {
+                printf("\nAccess denied!\n");
+                clearScreen();
+            }
+            break;
+        case 4:
+            printf("Returning to User Dashboard.\n");
+            clearScreen();
+            break;
+        default:
+            printf("Invalid choice. Please try again.\n");
+    }
+}
+
+void viewBlotterReports() {
+	
+    Resident* current = head;
+    if (current == NULL) {
+        printf("No residents registered.\n");
+        return;
+    }
+
+    printf("\nBlotter Reports:\n");
+    while (current != NULL) {
+        if (current->blotterReports != NULL) {
+            BlotterReport* report = current->blotterReports;
+            printf("Resident ID: %d, Name: %s\n", current->id, current->name);
+            while (report != NULL) {
+                printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
+                report = report->next;
+            }
+        }
+        current = current->next;
+    }
+}
+
+void manageBlotterReports() {
+	clearScreen();
+    int choice;
+    do {
+        printf("\nBlotter Report Management:\n");
+        printf("[1]. Add Blotter Report\n");
+        printf("[2]. View Blotter Reports\n");
+        printf("[3]. Return\n");
+        printf("Enter your choice: ");
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid choice entered.\n");
+            while (getchar() != '\n');
+            choice = 0;
+            continue;
+        }
+        while (getchar() != '\n');
+        switch (choice) {
+            case 1:
+                blotterReport();
+                break;
+            case 2:
+                viewBlotterReports();
+                break;
+            case 3:
+                printf("Returning to User Dashboard.\n");
+                clearScreen();
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 3);
+}
+
+void userDashboard(const char* role) {
+    printCentered("===============================");
+    printCentered("Dashboard");
+    printCentered("===============================\n");
+    printf("\n[1]. Display Residents"); // display registered residents
+    printf("\n[2]. Manage Residents"); // add, edit, delete resident data
+    printf("\n[3]. Search Residents"); // search resident
+    printf("\n[4]. Documents Request Order"); //add, view, delete documents
+    printf("\n[5]. Blotter Reports"); // add, view blotter reports
+    printf("\n[6]. Manage Inventory"); //bims inventory
+    printf("\n[7]. Clear Text Screen"); // clear texts in the screen
+     if (strcmp(role, "Captain") == 0) {
+        printf("\n[8]. Update Request Status");
+        printf("\n[9]. Exit\n");
+    } else {
+        printf("\n[8]. Exit\n");
+    }
+}
+
+void displayResidents() {
+	system("cls");
+    Resident* current = head;
+
+    if (current == NULL) {
+        printf("\nNo residents registered.\n");
+        return;
+    }
+
+    printf("\nResidents List:\n");
+    while (current != NULL) {
+        int blotterCount = 0;
+        BlotterReport* report = current->blotterReports;
+        while (report != NULL) {
+            blotterCount++;
+            report = report->next;
+        }
+
+        printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c \t Pending Blotter: %d\n\n",
+            current->id, current->name, current->age, current->gender, blotterCount);
+        current = current->next;
+    }
+}
+
+void inventoryDisplay() {
+    Item* currentItem = headItem;
+
+    if (currentItem == NULL) {
+        printf("\nNo Item available for display");
+        return;
+    }
+
+    printf("\n+------------+----------------------+------------+-------------------+\n");
+    printf("| %-10s | %-20s | %-10s | %-10s |\n", "Item ID", "Item Name", "Quantity", "Available");
+    printf("+------------+----------------------+------------+-------------------+\n");
+
+    while (currentItem != NULL) {
+        printf("| %-10d | %-20s | %-10d | %-10d |\n", currentItem->id, currentItem->itemName, currentItem->itemQuantity, currentItem->availableQuantity);
+        printf("+------------+----------------------+------------+-------------------+\n");
+        currentItem = currentItem->next;
+    }
+}
+
+void addItem() {
+
+    Item* item = (Item*)malloc(sizeof(Item));
+    if (item == NULL) {
+        perror("Memory allocation failed in addItem");
+        exit(EXIT_FAILURE);
+    }
+
+    int itemID = generateID();
+    item->id = itemID;
+
+    printf("\nItem Name: ");
+    getchar();
+    fgets(item->itemName, sizeof(item->itemName), stdin);
+    item->itemName[strcspn(item->itemName, "\n")] = 0;
+
+    printf("Quantity: ");
+    if (scanf("%d", &item->itemQuantity) != 1) {
+        printf("Invalid quantity entered.\n");
+        free(item);
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+    item->availableQuantity = item->itemQuantity;
+
+    item->next = headItem;
+    headItem = item;
+	clearScreen();
+    printf("Item Added Successfully!\n");
+    Sleep(2000);
+    clearScreen();
+}
+
+void deleteItem() {
+	clearScreen();
+    inventoryDisplay();
+    int deleteItemId;
+
+    printf("ItemID: ");
+    if (scanf("%d", &deleteItemId) != 1) {
+    	clearScreen();
+        printf("Invalid Item ID entered.\n");
+        Sleep(2000);
+        clearScreen();
+		while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+
+    Item* current = headItem;
+    Item* prev = NULL;
+
+    while (current != NULL) {
+        if (current->id == deleteItemId) {
+            if (prev == NULL) {
+                headItem = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+            printf("Item %d successfully deleted!\n", deleteItemId);
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
+
+    printf("Item %d not found in the list.\n", deleteItemId);
+}
+
+void editItem() {
+clearScreen();
+    inventoryDisplay();
+
+    int editItemId, choice;
+
+    Item* current = headItem;
+
+    printf("Item ID: ");
+    if (scanf("%d", &editItemId) != 1) {
+    	clearScreen();
+        printf("Invalid Item ID entered.\n");
+        Sleep(2000);
+        clearScreen();
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+
+    while (current != NULL) {
+        if (current->id == editItemId) {
+            printf("\nChoose Which to edit: ");
+            printf("\n[1]. Item Name\n");
+            printf("[2]. Item Quantity\n");
+            printf("Choice: ");
+            if (scanf("%d", &choice) != 1) {
+                printf("Invalid choice entered.\n");
+                while (getchar() != '\n');
+                return;
+            }
+            while (getchar() != '\n');
+
+            switch (choice) {
+                case 1:
+                    printf("Item Name: ");
+                    getchar();
+                    fgets(current->itemName, sizeof(current->itemName), stdin);
+                    current->itemName[strcspn(current->itemName, "\n")] = 0;
+                    break;
+                case 2:
+                    printf("Item Quantity: ");
+                    if (scanf("%d", &current->itemQuantity) != 1) {
+                        printf("Invalid quantity entered.\n");
+                        while (getchar() != '\n');
+                        return;
+                    }
+                    while (getchar() != '\n');
+                    break;
+                default:
+                    printf("Invalid choice.\n");
+            }
+            return;
+        }
+        current = current->next;
+    }
+    printf("Item ID not found.\n");
+}
+
+void inventoryManage() {
+	clearScreen();
+    inventoryDisplay();
+
+    int manageChoice;
+    printf("\n[1]. Add");
+    printf("\n[2]. Edit");
+    printf("\n[3]. Delete");
+    printf("\nEnter Choice: ");
+    if (scanf("%d", &manageChoice) != 1) {
+        printf("Invalid choice entered.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n');
+    switch (manageChoice) {
+        case 1:
+            addItem();
+            break;
+        case 2:
+            editItem();
+            break;
+        case 3:
+            deleteItem();
+            break;
+        default:
+            printf("Invalid choice.\n");
+            Sleep(2000);
+            clearScreen();
+    }
+}
 
 void saveResidents(const char* filename) {
     FILE* file = fopen(filename, "w");
@@ -82,10 +970,15 @@ void loadResidents(const char* filename) {
     Resident* currentResident = NULL;
 
     while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = 0; 
+        line[strcspn(line, "\n")] = 0;
 
         if (strncmp(line, "RESIDENT,", 9) == 0) {
             Resident* newResident = (Resident*)malloc(sizeof(Resident));
+            if (newResident == NULL)
+             {
+                perror("Memory allocation error in loadResidents");
+                exit(EXIT_FAILURE);
+             }
             sscanf(line, "RESIDENT,%d,%49[^,],%d,%c", &newResident->id, newResident->name, &newResident->age, &newResident->gender);
             newResident->next = head;
             newResident->blotterReports = NULL;
@@ -94,6 +987,11 @@ void loadResidents(const char* filename) {
 
         } else if (strncmp(line, "BLOTTER,", 8) == 0 && currentResident != NULL) {
             BlotterReport* report = (BlotterReport*)malloc(sizeof(BlotterReport));
+             if (report == NULL)
+             {
+                perror("Memory allocation error in loadResidents");
+                exit(EXIT_FAILURE);
+             }
             sscanf(line, "BLOTTER,%999[^,],%29[^,],%49[^\n]", report->report, report->dateTime, report->recorder);
             report->next = currentResident->blotterReports;
             currentResident->blotterReports = report;
@@ -107,20 +1005,20 @@ void loadResidents(const char* filename) {
     printf("Residents and blotters loaded from %s\n", filename);
 }
 
-void saveRequest(Queue* queue, const char* filename){
-	FILE* file = fopen(filename, "w");
-	if(file == NULL){
-		printf("ERROR OPENING FILE!\n");
-		return;
-	}
-	
-	DocumentRequest* current = queue->front;
-	while(current!=NULL){
-		fprintf(file, "%s, %s, %s", current->documentName,current->residentName,current->dateAdded);
-		current = current->next;
-	}
-	fclose(file);
-	printf("Document Request Save Successfully");
+void saveRequest(Queue* queue, const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("ERROR OPENING FILE!\n");
+        return;
+    }
+
+    DocumentRequest* current = queue->front;
+    while (current != NULL) {
+        fprintf(file, "%d,%s,%s,%s,%s\n", current->requestId, current->documentName, current->residentName, current->dateAdded, current->status);
+        current = current->next;
+    }
+    fclose(file);
+    printf("Document Request Save Successfully\n");
 }
 
 void loadRequest(Queue* queue, const char* filename) {
@@ -131,23 +1029,29 @@ void loadRequest(Queue* queue, const char* filename) {
     }
 
     char line[300];
-    char documentName[100], residentName[100], dateAdded[30];
+    DocumentRequest* newRequest;
 
     while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = 0; // Remove newline character
-        if (sscanf(line, "%99[^,],%99[^,],%29[^\n]", documentName, residentName, dateAdded) == 3) {
-            enqueue(queue, documentName, residentName, dateAdded);
+        line[strcspn(line, "\n")] = 0;
+        newRequest = (DocumentRequest*)malloc(sizeof(DocumentRequest));
+        if (newRequest == NULL) {
+            perror("Memory allocation error in loadRequest");
+            exit(EXIT_FAILURE);
+        }
+        if (sscanf(line, "%d,%99[^,],%99[^,],%29[^,],%19[^\n]", &newRequest->requestId, newRequest->documentName, newRequest->residentName, newRequest->dateAdded, newRequest->status) == 5) {
+            newRequest->next = NULL;
+            if (queue->rear == NULL) {
+                queue->front = newRequest;
+                queue->rear = newRequest;
+            } else {
+                queue->rear->next = newRequest;
+                queue->rear = newRequest;
+            }
         }
     }
 
     fclose(file);
     printf("Document requests loaded from %s\n", filename);
-}
-Queue* createQueue() {
-    Queue* queue = (Queue*)malloc(sizeof(Queue));
-    queue->front = NULL;
-    queue->rear = NULL;
-    return queue;
 }
 
 void saveInventory(const char* filename) {
@@ -167,7 +1071,6 @@ void saveInventory(const char* filename) {
     printf("Inventory saved to %s\n", filename);
 }
 
-
 void loadInventory(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
@@ -178,6 +1081,10 @@ void loadInventory(const char* filename) {
     char line[200];
     while (fgets(line, sizeof(line), file)) {
         Item* item = (Item*)malloc(sizeof(Item));
+        if (item == NULL) {
+            perror("Memory allocation error in loadInventory");
+            exit(EXIT_FAILURE);
+        }
         if (sscanf(line, "%d,%19[^,],%d,%d", &item->id, item->itemName, &item->itemQuantity, &item->availableQuantity) != 4) {
             free(item);
             continue;
@@ -190,678 +1097,64 @@ void loadInventory(const char* filename) {
     printf("Inventory loaded from %s\n", filename);
 }
 
-
-
-void enqueue(Queue* queue, const char* documentName, const char* residentName, const char* dateAdded) {
-    DocumentRequest* newRequest = (DocumentRequest*)malloc(sizeof(DocumentRequest));
-    strcpy(newRequest->documentName, documentName);
-    strcpy(newRequest->residentName, residentName);
-    strcpy(newRequest->dateAdded, dateAdded);
-    newRequest->next = NULL;
-    if (queue->rear == NULL) {
-        queue->front = newRequest;
-        queue->rear = newRequest;
-    } else {
-        queue->rear->next = newRequest;
-        queue->rear = newRequest;
-    }
-}
-void viewRequests(Queue* queue) {
-    DocumentRequest* current = queue->front;
-    if (current == NULL) {
-        printf("No document requests available.\n");
-        return;
-    }
-    int count = 1;
-    printf("Document Requests:\n");
-    while (current != NULL) {
-        char suffix[3] = "th";
-        if (count % 10 == 1 && count % 100 != 11) {
-            strcpy(suffix, "st");
-        } else if (count % 10 == 2 && count % 100 != 12) {
-            strcpy(suffix, "nd");
-        } else if (count % 10 == 3 && count % 100 != 13) {
-            strcpy(suffix, "rd");
-        }
-        printf("\n%d%s: \nDocument Name: %s \nResident Name: %s \nDate Added: %s\n", count, suffix, current->documentName, current->residentName, current->dateAdded);
-        current = current->next;
-        count++;
-    }
-}
-void clearScreen() {
-    #ifdef _WIN32
-        system("cls");
-    #else
-        system("clear"); 
-    #endif
-}
-void deleteRequest(Queue* queue) {
-    if (queue->front == NULL) {
-        printf("No document requests to delete.\n");
-        return;
-    }
-    viewRequests(queue);
- 
-    DocumentRequest* current = queue->front;
-    int selectedIndex = 0;
-    int count = 0;
- 
-    while (current != NULL) {
-        count++;
-        current = current->next;
-    }
- 
-    current = queue->front;
- 
-    while (1) {
-        int i = 0;
-        
-        printf("Select a document to delete (Enter 0 to exit):\n");
-        current = queue->front;
-        for (i; i < count; i++) {
-            if (i == selectedIndex) {
-                printf("-> %s\n", current->documentName);
-            } else {
-                printf("   %s\n", current->documentName);
-            }
-            current = current->next;
-        }
- 
-        int ch = _getch();
- 
-        if (ch == 72) {
-            selectedIndex--;
-            if (selectedIndex < 0) {
-                selectedIndex = count - 1;
-            }
-        } else if (ch == 80) {
-            selectedIndex++;
-            if (selectedIndex >= count) {
-                selectedIndex = 0;
-            }
-        } else if (ch == 13) {
-            current = queue->front;
-            DocumentRequest* previous = NULL;
-            int index = 0;
- 
-            while (current != NULL) {
-                if (index == selectedIndex) {
-                    if (previous == NULL) {
-                        queue->front = current->next;
-                        if (queue->front == NULL) {
-                            queue->rear = NULL;
-                        }
-                    } else {
-                        previous->next = current->next;
-                        if (previous->next == NULL) {
-                            queue->rear = previous;
-                        }
-                    }
-                    free(current);
-                    printf("Document request deleted.\n");
-                    return;
-                }
-                previous = current;
-                current = current->next;
-                index++;
-            }
-        } else if (ch == '0') {
-            printf("Deletion canceled.\n");
-            return;
-        }
-    }
-}
-
-void formatTime(char *output) {
-    time_t rawTime;
-    struct tm * timeinfo;
-    
-    time(&rawTime);
-    timeinfo = localtime(&rawTime);
-    
-    sprintf(output, "%d/%d/%d %d:%d:%d", timeinfo->tm_mon + 1,
-            timeinfo->tm_mday, timeinfo->tm_year + 1900,
-            timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-}
-
-void documentsRequestOrder(Queue* queue) {
-    int choice;
-    char documentName[100];
-    char residentName[100];
-    char dateAdded[30];
-    formatTime(dateAdded);
-    do {
-        printf("\nDocument Request Order:\n");
-        printf("[1]. Add Document Request\n");
-        printf("[2]. View Document Requests\n");
-        printf("[3]. Delete Document Request\n");
-        printf("[4]. Back to User Dashboard\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-        getchar();
-        switch (choice) {
-            case 1:
-                printf("Enter document name: ");
-                fgets(documentName, sizeof(documentName), stdin);
-                documentName[strcspn(documentName, "\n")] = 0;
-                printf("Enter resident name: ");
-                fgets(residentName, sizeof(residentName), stdin);
-                residentName[strcspn(residentName, "\n")] = 0;
-                printf("Date Requested: %s", dateAdded);
-                enqueue(queue, documentName, residentName, dateAdded);
-                printf("\nDocument request added.\n");
-                break;
-            case 2:
-                viewRequests(queue);
-                break;
-            case 3:
-                deleteRequest(queue);
-                break;
-            case 4:
-                printf("Returning to User Dashboard.\n");
-                clearScreen();
-                break;
-            default:
-                printf("Invalid choice. Please try again.\n");
-        }
-    } while (choice != 4);
-}
-
-int generateID() {
-    return 1000 + rand() % 9000;
-}
-
-void searchResident() {
-    char searchName[50];
-    printf("Enter the name of the resident to search: ");
-    getchar();
-    fgets(searchName, sizeof(searchName), stdin);
-    searchName[strcspn(searchName, "\n")] = 0; 
-	Resident* current = head;
-    int found = 0;
-    
-    printf("\nSearch Results:\n");
-    while (current != NULL) {
-        if (strstr(current->name, searchName) != NULL) {
-            int blotterCount = 0;
-            BlotterReport* report = current->blotterReports;
-            while (report != NULL) {
-                blotterCount++;
-                report = report->next;
-            }
-            printf("\nID: %d \nName: %s \nAge: %d \nGender: %c \nPending Blotter: %d\n", 
-                   current->id, current->name, current->age, current->gender, blotterCount);
-            found = 1;
-            if (current->blotterReports != NULL) {
-                printf("Blotter Description:\n");
-                report = current->blotterReports;
-                while (report != NULL) {
-                    printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
-                    report = report->next;
-                }
-            } else {
-                printf("No pending blotter reports for this resident.\n");
-            }
-        }
-        current = current->next;
-    }
-    if (!found) {
-        printf("No residents found with the name '%s'.\n", searchName);
-    }
-}
-
-void addResident() {
-    Resident* newResident = (Resident*)malloc(sizeof(Resident));
-    char residentGender;
-    int id = generateID();
-    newResident->id = id;
-    printf("Resident ID: %d\n", id);
-    printf("Name: ");
-    getchar(); 
-    fgets(newResident->name, sizeof(newResident->name), stdin);
-    newResident->name[strcspn(newResident->name, "\n")] = 0; 
-
-    printf("Age: ");
-    scanf("%d", &newResident->age);
-    
-    printf("Gender (M/F): ");
-    scanf(" %c", &residentGender); 
-    newResident->gender = toupper(residentGender);
-    
-    newResident->next = head; 
-    newResident->blotterReports = NULL; 
-    head = newResident;
-
-    printf("Resident Added Successfully!\n");
-}
-
-void deleteResident() {
-    int residentID;
-    
-    printf("\nEnter Resident ID: ");
-    scanf("%d", &residentID);
-    
-    Resident* current = head;
-    Resident* prev = NULL;
-    
-    while (current != NULL) {
-        if (current->id == residentID) {
-            BlotterReport* report = current->blotterReports;
-            while (report != NULL) {
-                BlotterReport* temp = report;
-                report = report->next;
-                free(temp);
-            }
-            if (prev == NULL) {
-                head = current->next;
-            } else {
-                prev->next = current->next; 
-            }
-            free(current);
-            printf("\nResident with ID#: %d has been deleted successfully!\n", residentID);
-            return;
-        }
-        prev = current;
-        current = current->next;
-    }
-    printf("\nResident with ID#: %d not found!", residentID);
-}
-
-void editResident() {
-    int residentID, choice;
-     int newAge;
-     char newGender;
-    Resident* current = head;
-    
-    printf("\nEnter Resident ID: ");
-    scanf("%d", &residentID);
-    
-    while (current != NULL) {
-        if (current->id == residentID) {
-            printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c\n", current->id, current->name, current->age, current->gender);    
-            break;
-        }    
-        current = current->next;
-    }
-    
-    if (current == NULL) {
-        printf("\nResident ID not found!\n");
-        return;
-    }
-    
-    printf("\nChoose which part:");
-    printf("\n[1]. Name");
-    printf("\n[2]. Age");
-    printf("\n[3]. Gender");
-    printf("\n[4]. Return");
-    printf("\nEnter choice: ");
-    scanf("%d", &choice);
-    
-    switch (choice) {
-        case 1:
-            printf("\nEnter new name: ");
-            getchar(); 
-            fgets(current->name, sizeof(current->name), stdin);
-            current->name[strcspn(current->name, "\n")] = 0; 
-            break;
-        case 2:
-            printf("Enter new Age: ");
-            scanf("%d", &newAge);
-            current->age = newAge;
-            break;
-        case 3:
-            printf("Gender (M/F): ");
-            scanf(" %c", &newGender); 
-            current->gender = toupper(newGender);
-            break;
-        case 4:
-        	clearScreen();
-            return;
-            break;
-    }
-}
-void blotterReport() {
-    char blotterReport[1000];
-    char dateTime[30];
-    char recorder[50];
-    int complainantID;
-
-    formatTime(dateTime);
-    printf("Complainant ID: ");
-    scanf("%d", &complainantID);
-
-    Resident* current = head;
-    while (current != NULL) {
-        if (complainantID == current->id) {
-            printf("Name of Complainant: %s\n", current->name);
-            break;    
-        }
-        current = current->next;
-    }
-    if (current == NULL) {
-        printf("\nResident not found!");
-        return;
-    }
-    printf("Date reported: %s", dateTime);
-    printf("\nBLOTTER REPORT: \n");
-    getchar(); 
-    fgets(blotterReport, sizeof(blotterReport), stdin);
-    blotterReport[strcspn(blotterReport, "\n")] = 0; 
-
-    printf("\nRecorded by: ");
-    getchar(); 
-    fgets(recorder, sizeof(recorder), stdin);
-    recorder[strcspn(recorder, "\n")] = 0; 
-
-    BlotterReport* newReport = (BlotterReport*)malloc(sizeof(BlotterReport));
-    strcpy(newReport->report, blotterReport);
-    strcpy(newReport->dateTime, dateTime);
-    strcpy(newReport->recorder, recorder);
-    newReport->next = current->blotterReports; 
-    current->blotterReports = newReport;
-    printf("\nReport Successfully Saved\n");
-}
-void printCentered(const char* message) {
-    int consoleWidth = 120;
-    int messageLength = strlen(message);
-    int padding = (consoleWidth - messageLength) / 2;
-    for (int i = 0; i < padding; i++) {
-        printf(" ");
-    }
-    printf("%s\n", message);
-}
-const char* checkRole() {
-    const char captainPassword[] = "Admin.123";
-    const char secretaryPassword[] = "123";
-    char input[20];
-	printCentered("==============================="); 	
-    printCentered("Please log in to the account!"); 
-    printCentered("===============================\n"); 
-    do {
-        printf("Enter Password: ");
-        fgets(input, sizeof(input), stdin);
-        input[strcspn(input, "\n")] = 0; 
-    } while (strcmp(input, captainPassword) != 0 && strcmp(input, secretaryPassword) != 0);
-
-    if (strcmp(input, captainPassword) == 0) {
-        printCentered("Welcome Captain!"); 
-        return "Captain";
-    } else {
-        printCentered("Welcome Secretary!"); 
-        return "Secretary";
-    }
-}
-
-void manageResident(const char* role) {
-    int manageChoice;
-    printf("\n[1]. Add");
-    printf("\n[2]. Edit");
-    printf("\n[3]. Delete");
-    printf("\n[4]. Return\n");
-    printf("\nEnter Choice: ");
-    scanf("%d", &manageChoice);
-    switch (manageChoice) {
-        case 1: 
-            addResident();
-            break;
-        case 2:
-            if (strcmp(role, "Captain") == 0) {
-                editResident();	
-            } else {
-                printf("Access denied!");
-            }
-            break;
-        case 3:
-        	if(strcmp(role, "Captain")==0){
-        	deleteResident();	
-			} else {
-                printf("Access denied!");
-            }          
-            break;
-        case 4:
-        	printf("Returning to User Dashboard.\n");
-            clearScreen();
-            break;
-    }
-}
-void viewBlotterReports() {
-    Resident* current = head;
-    if (current == NULL) {
-        printf("No residents registered.\n");
-        return;
-    }
-
-    printf("\nBlotter Reports:\n");
-    while (current != NULL) {
-        if (current->blotterReports != NULL) {
-            BlotterReport* report = current->blotterReports;
-            printf("Resident ID: %d, Name: %s\n", current->id, current->name);
-            while (report != NULL) {
-                printf(" - %s (Recorded by: %s on %s)\n", report->report, report->recorder, report->dateTime);
-                report = report->next;
-            }
-        }
-        current = current->next;
-    }
-}
-
-void manageBlotterReports() {
-    int choice;
-    do {
-        printf("\nBlotter Report Management:\n");
-        printf("[1]. Add Blotter Report\n");
-        printf("[2]. View Blotter Reports\n");
-        printf("[3]. Return\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-        
-        switch (choice) {
-            case 1:
-                blotterReport();
-                break;
-            case 2:
-                viewBlotterReports();
-                break;
-            case 3:
-                printf("Returning to User Dashboard.\n");
-                clearScreen();
-                break;
-            default:
-                printf("Invalid choice. Please try again.\n");
-        }
-    } while (choice != 3);
-}
-void userDashboard() {
-	printCentered("==============================="); 
-	printCentered("Dashboard");
-	printCentered("===============================\n"); 
-    printf("\n[1]. Display Residents"); // display registered residents
-    printf("\n[2]. Manage Residents"); // add, edit, delete resident data
-    printf("\n[3]. Search Residents"); // search resident
-    printf("\n[4]. Documents Request Order"); //add, view, delete documents
-    printf("\n[5]. Blotter Reports"); // add, view blotter reports
-    printf("\n[6]. Manage Inventory"); //bims inventory
-    printf("\n[7]. Clear Text Screen"); // clear texts in the screen
-    printf("\n[8]. Exit\n");
-}
-
-void displayResidents() {
-    Resident* current = head;
-    
-    if (current == NULL) {
-        printf("\nNo residents registered.\n");
-        return; 
-    }
-    
-    printf("\nResidents List:\n");
-    while (current != NULL) {
-        int blotterCount = 0;
-        BlotterReport* report = current->blotterReports;
-        while (report != NULL) {
-            blotterCount++;
-            report = report->next;
-        }
-        
-        printf("ID: %d \t Name: %s \t Age: %d \t Gender: %c \t Pending Blotter: %d\n\n", 
-               current->id, current->name, current->age, current->gender, blotterCount);
-        current = current->next;
-    }
-}
-
-void inventoryDisplay(){
-    Item* currentItem = headItem;
-    
-    if(currentItem == NULL){
-        printf("\nNo Item available for display");
-        return;
-    }
-    
-    printf("\n+------------+----------------------+------------+-------------------+\n");
-    printf("| %-10s | %-20s | %-10s | %-10s |\n", "Item ID", "Item Name", "Quantity", "Available");
-    printf("+------------+----------------------+------------+-------------------+\n");
-    
-    while(currentItem != NULL){
-        printf("| %-10d | %-20s | %-10d | %-10d |\n", currentItem->id, currentItem->itemName, currentItem->itemQuantity, currentItem->availableQuantity);
-        printf("+------------+----------------------+------------+-------------------+\n");
-        currentItem = currentItem->next;
-    }    
-}
-
-void addItem(){
-	
-	Item* item = (Item*)malloc(sizeof(Item));
-	
-	int itemID = generateID();
-	item->id = itemID;
-	
-	printf("Item Name: ");
-	getchar(); 
-    fgets(item->itemName, sizeof(item->itemName), stdin);
-    item->itemName[strcspn(item->itemName, "\n")] = 0;
-	
-	printf("Quantity: ");
-	scanf("%d", &item->itemQuantity);
-	
-	item->availableQuantity = item->itemQuantity; 
-	
-	item->next = headItem;
-    headItem = item;
-
-    printf("Item Added Successfully!\n");
-	
-	 
-}
-
-void deleteItem(){
-	inventoryDisplay();
-	int deleteItemId;
-	
-	printf("ItemID: ");
-	scanf("%d", &deleteItemId);
-	
-	Item* current = headItem;
-	Item* prev = NULL;
-	
-	while(current!=NULL){
-		if(current->id == deleteItemId){
-			if (prev == NULL) {
-                headItem = current->next;
-            } else {
-                prev->next = current->next;
-            }
-            free(current);
-			printf("Item %d successfully delete!", deleteItemId);
-			return;
-		}
-		prev = current;
-    	current = current->next;
-	}
-		
-	printf("Item %d not found in the list.\n", deleteItemId);
-}
-
-void editItem(){
-	
-	inventoryDisplay();
-	
-	int editResidentId, choice;
-	
-	Item* current = headItem;
-	
-	printf("Item ID: ");
-	scanf("%d", &editResidentId);
-	
-	while(current!=NULL){
-		if(current->id==editResidentId){
-			printf("\nChoose Which to edit: ");
-			printf("[1]. Item Name");
-			printf("[2]. Item Quantity");
-			printf("Choice: ");
-			scanf("%d", &choice);
-			
-			switch(choice){
-				case 1:
-					printf("Item Name: ");
-					getchar(); 
-    				fgets(current->itemName, sizeof(current->itemName), stdin);
-    				current->itemName[strcspn(current->itemName, "\n")] = 0;
-    				break;
-    			case 2:
-    				printf("Item Quantity: ");
-    				scanf("%d", &current->itemQuantity);
-    				break;
-			}
-			current= current->next;
-		}
-	}
-}
-
-void inventoryManage(){
-	inventoryDisplay();
-	
-	int manageChoice;
-    printf("\n[1]. Add");
-    printf("\n[2]. Edit");
-    printf("\n[3]. Delete\n");
-    printf("\nEnter Choice: ");
-    scanf("%d", &manageChoice);
-    switch (manageChoice) {
-        case 1: 
-            addItem();
-            break;
-        case 2:
-            editItem();
-            break;
-        case 3:
-            deleteItem();
-            break;
-    }
-}
-
 void freeQueue(Queue* queue) {
+    if (queue == NULL) return;
     DocumentRequest* current = queue->front;
     DocumentRequest* next;
     while (current != NULL) {
         next = current->next;
-        free(current);
+        freeDocumentRequest(current);
         current = next;
     }
+    queue->front = queue->rear = NULL;
     free(queue);
 }
 
 void freeResidents() {
     Resident* current = head;
+    Resident* next;
     while (current != NULL) {
-        Resident * temp = current;
-        current = current->next;
-        BlotterReport* report = temp->blotterReports;
+        next = current->next;
+        BlotterReport* report = current->blotterReports;
         while (report != NULL) {
             BlotterReport* reportTemp = report;
             report = report->next;
             free(reportTemp);
         }
-        free(temp);
+        free(current);
     }
+    head = NULL;
+}
+
+void updateRequestStatus(Queue* queue) {
+    if (queue->front == NULL) {
+        printf("No document requests to update.\n");
+        return;
+    }
+
+    viewRequests(queue);
+    int requestID;
+    printf("Enter the ID of the document request to update: ");
+    if (scanf("%d", &requestID) != 1) {
+        printf("Invalid request ID.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    getchar();
+
+    DocumentRequest* current = queue->front;
+    while (current != NULL) {
+        if (current->requestId == requestID) {
+            printf("Current Status: %s\n", current->status);
+            printf("Enter new status (e.g., Approved, Denied, Completed): ");
+            fgets(current->status, sizeof(current->status), stdin);
+            current->status[strcspn(current->status, "\n")] = 0;
+            printf("Status updated successfully.\n");
+            return;
+        }
+        current = current->next;
+    }
+    printf("Document request with ID %d not found.\n", requestID);
 }
 
 int main() {
@@ -869,48 +1162,71 @@ int main() {
     Queue* queue = createQueue();
     int choice;
 
-	loadResidents("residents.txt");
-	loadRequest(queue, "requests.txt");
-	loadInventory("inventory.txt"); 
-	
+    loadResidents("residents.txt");
+    loadRequest(queue, "requests.txt");
+    loadInventory("inventory.txt");
+
     const char* role = checkRole();
-    
+
     do {
-        userDashboard();
+        userDashboard(role);
         printf("\nEnter your choice: ");
-        scanf("%d", &choice);
-        
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input. Please enter a number.\n");
+            while (getchar() != '\n');
+            choice = 0;
+            continue;
+        }
+        while (getchar() != '\n');
+
         switch (choice) {
             case 1:
                 displayResidents();
+                
                 break;
             case 2:
                 manageResident(role);
+                 
                 break;
             case 3:
                 searchResident();
+                 
                 break;
             case 4:
-                documentsRequestOrder(queue);
+                documentsRequestOrder(queue, role);
+                 
                 break;
             case 5:
-                manageBlotterReports();            
+                manageBlotterReports();
+                 
                 break;
             case 6:
-            	inventoryManage();      
+                inventoryManage();
+                 
                 break;
             case 7:
-            	clearScreen();
-            	break;
-            case 8:
-				saveResidents("residents.txt");
-            	saveRequest(queue, "requests.txt");
-            	saveInventory("inventory.txt");
-                printf("\nGoodbye!");
+                clearScreen();
+                break;
+             case 8:
+                if (strcmp(role, "Captain") == 0) {
+                    updateRequestStatus(queue);
+                    break;
+                }
+                 
+            case 9:
+                saveResidents("residents.txt");
+                saveRequest(queue, "requests.txt");
+                saveInventory("inventory.txt");
+                 
+                printf("\nGoodbye!\n");
                 freeQueue(queue);
                 freeResidents();
-                exit(1);
-                break;
+                freeInventory();
+                return 0;
+            default:
+                printf("Invalid choice. Please try again.\n");
         }
     } while (choice != 8);
+    return 0;
 }
+//yow
