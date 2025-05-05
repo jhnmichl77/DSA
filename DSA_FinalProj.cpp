@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <conio.h>
 #include <windows.h>
+#include <stdbool.h>
+
 
 #define MAX_NAME_LENGTH 50
 #define MAX_REPORT_LENGTH 1000
@@ -13,6 +15,9 @@
 #define MAX_DOCUMENT_NAME_LENGTH 100
 #define MAX_STATUS_LENGTH 20
 #define MAX_ITEM_NAME_LENGTH 20
+#define MAX_BLOTTERS 100
+#define MAX_LENGTH 1000
+#define MAX_LINE 1024
 
 typedef struct Resident {
     int id;
@@ -91,7 +96,7 @@ void freeResidents();
 void freeInventory();
 void freeDocumentRequest(DocumentRequest* request);
 void updateRequestStatus(Queue* queue);
-
+void exportSelectedBlotters();
  
 void freeInventory() {
     Item* current = headItem;
@@ -147,7 +152,6 @@ void enqueue(Queue* queue, const char* documentName, const char* residentName, c
 }
 
 void viewRequests(Queue* queue) {
-	clearScreen();
     DocumentRequest* current = queue->front;
     if (current == NULL) {
         printf("No document requests available.\n");
@@ -197,9 +201,7 @@ void deleteRequest(Queue* queue) {
     }
 
     while (1) {
-        clearScreen();
         printf("Use arrow keys to select a document. Press ENTER to delete.\n\n");
-
         current = queue->front;
         for (int i = 0; i < count; i++) {
             if (i == selectedIndex) {
@@ -240,8 +242,7 @@ void deleteRequest(Queue* queue) {
                             queue->rear = previous;
                         }
                     }
-                    free(current);
-                    clearScreen();
+                    free(current);                  
                     printf("Document request deleted.\n");
                     Sleep(1000);
                     return;
@@ -251,7 +252,6 @@ void deleteRequest(Queue* queue) {
                 index++;
             }
         } else if (ch == '0') {
-            clearScreen();
             printf("Deletion canceled.\n");
             Sleep(1000);
             return;
@@ -297,7 +297,6 @@ void documentsRequestOrder(Queue* queue, const char* role) {
         getchar();
         switch (choice) {
             case 1:
-            	clearScreen();
                 printf("\nEnter document name: ");
                 fgets(documentName, sizeof(documentName), stdin);
                 documentName[strcspn(documentName, "\n")] = 0;
@@ -313,7 +312,7 @@ void documentsRequestOrder(Queue* queue, const char* role) {
                 clearScreen();
                 break;
             case 2:
-                viewRequests(queue);
+                viewRequests(queue);                
                 break;
             case 3:
                 deleteRequest(queue);
@@ -390,7 +389,6 @@ void addResident() {
     newResident->id = id;
     printf("\nResident ID: %d\n", id);
     printf("Name: ");
-    getchar();
     fgets(newResident->name, sizeof(newResident->name), stdin);
     newResident->name[strcspn(newResident->name, "\n")] = 0;
 
@@ -516,7 +514,6 @@ void editResident() {
             current->gender = toupper(newGender);
             break;
         case 4:
-            clearScreen();
             return;
             break;
         default:
@@ -635,8 +632,6 @@ void manageResident(const char* role) {
             } else {
                 printf("\nAccess denied!");
                 printf("\n");
-                clearScreen();
-                
             }
             break;
         case 3:
@@ -657,7 +652,7 @@ void manageResident(const char* role) {
 }
 
 void viewBlotterReports() {
-	
+	char yn;
     Resident* current = head;
     if (current == NULL) {
         printf("No residents registered.\n");
@@ -676,16 +671,17 @@ void viewBlotterReports() {
         }
         current = current->next;
     }
+    
 }
 
 void manageBlotterReports() {
-	clearScreen();
     int choice;
     do {
         printf("\nBlotter Report Management:\n");
         printf("[1]. Add Blotter Report\n");
         printf("[2]. View Blotter Reports\n");
-        printf("[3]. Return\n");
+        printf("[3]. Export Selected Blotters to Word File\n");
+        printf("[4]. Return\n");
         printf("Enter your choice: ");
         if (scanf("%d", &choice) != 1) {
             printf("Invalid choice entered.\n");
@@ -702,14 +698,76 @@ void manageBlotterReports() {
                 viewBlotterReports();
                 break;
             case 3:
+                exportSelectedBlotters(); 
+                break;
+            case 4:
                 printf("Returning to User Dashboard.\n");
                 clearScreen();
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
-    } while (choice != 3);
+    } while (choice != 4);
 }
+
+
+
+void exportSelectedBlotters() {
+    char targetID[100];
+    printf("Enter Resident ID to export blotters: ");
+    fgets(targetID, sizeof(targetID), stdin);
+    targetID[strcspn(targetID, "\n")] = '\0'; 
+
+    FILE *input = fopen("residents.txt", "r");
+    FILE *output = fopen("GeneratedBlotter.doc", "w");
+    if (!input || !output) {
+        printf("Error opening files.\n");
+        if (input) fclose(input);
+        if (output) fclose(output);
+        return;
+    }
+
+    char line[MAX_LINE];
+    bool inTargetResident = false;
+    bool found = false;
+
+    while (fgets(line, sizeof(line), input)) {
+        if (strncmp(line, "RESIDENT,", 9) == 0) {
+            char currentID[100];
+            sscanf(line, "RESIDENT,%[^,]", currentID);
+            inTargetResident = strcmp(currentID, targetID) == 0;
+
+            if (inTargetResident) {
+                fprintf(output, "Resident ID: %s\n\n", targetID);
+            }
+        } else if (inTargetResident && strncmp(line, "BLOTTER,", 8) == 0) {
+            char details[256], datetime[256], complainant[256];
+
+            
+            if (sscanf(line, "BLOTTER,%[^,],%[^,],%[^\n]", details, datetime, complainant) == 3) {
+                fprintf(output, "Blotter Report:\n");
+                fprintf(output, "- Details     : %s\n", details);
+                fprintf(output, "- Date/Time   : %s\n", datetime);
+                fprintf(output, "- Prepared By : %s\n", complainant);
+                fprintf(output, "\n--------------------------------------------------\n\n");
+                found = true;
+            }
+        } else if (strncmp(line, "ENDRESIDENT", 11) == 0) {
+            inTargetResident = false;
+        }
+    }
+
+    fclose(input);
+    fclose(output);
+
+    if (found) {
+        printf("Formatted blotter(s) exported to 'Selected_Blotters.doc'.\n");
+    } else {
+        printf("No blotters found for Resident ID '%s'.\n", targetID);
+        remove("Selected_Blotters.doc");
+    }
+}
+
 
 void userDashboard(const char* role) {
     printCentered("===============================");
@@ -930,7 +988,6 @@ void inventoryManage() {
         default:
             printf("Invalid choice.\n");
             Sleep(2000);
-            clearScreen();
     }
 }
 
@@ -1229,4 +1286,4 @@ int main() {
     } while (choice != 8);
     return 0;
 }
-//yow
+ 
