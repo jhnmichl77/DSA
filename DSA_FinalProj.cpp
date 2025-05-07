@@ -97,7 +97,9 @@ void freeInventory();
 void freeDocumentRequest(DocumentRequest* request);
 void updateRequestStatus(Queue* queue);
 void exportSelectedBlotters();
- 
+void printRequest(Queue* queue);
+void generateDocx(int reqID, const char* name, const char* type, const char* date);
+
 void freeInventory() {
     Item* current = headItem;
     Item* next;
@@ -284,9 +286,11 @@ void documentsRequestOrder(Queue* queue, const char* role) {
         if (strcmp(role, "Captain") == 0) {
             printf("[4]. Update Request Status\n");
             printf("[5]. Back to User Dashboard\n");
+            printf("[9]. Print A Request\n");
         } else {
             printf("[4]. Back to User Dashboard\n");
         }
+        
         printf("Enter your choice: ");
         if (scanf("%d", &choice) != 1) {
             printf("Invalid input. Please enter a number.\n");
@@ -327,6 +331,9 @@ void documentsRequestOrder(Queue* queue, const char* role) {
                 return;
                 clearScreen();
                 break;
+            case 9: 
+            	printRequest(queue);
+            	return;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
@@ -709,8 +716,6 @@ void manageBlotterReports() {
         }
     } while (choice != 4);
 }
-
-
 
 void exportSelectedBlotters() {
     char targetID[100];
@@ -1213,6 +1218,69 @@ void updateRequestStatus(Queue* queue) {
     }
     printf("Document request with ID %d not found.\n", requestID);
 }
+void printRequest(Queue* queue) {
+    int reqID, fileReqID;
+    char line[256];
+    char name[50], type[50], status[20], date[20];
+
+
+    system("cls");
+    viewRequests(queue);
+    printf("\nEnter Request ID: ");
+    scanf("%d", &reqID);
+
+    FILE* file = fopen("requests.txt", "r");
+    if (file == NULL) {
+        printf("Error: Could not open request.txt\n");
+        return;
+    }
+
+    int found = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        
+        sscanf(line, "%d,%[^,],%[^,],%[^,],%[^\n]",
+       &fileReqID, type, name, date, status);{
+            if (fileReqID == reqID) {
+                found = 1;
+                if (strcmp(status, "Approved") == 0) {
+                    generateDocx(reqID, name, type, date);
+                } else {
+                    printf("Request ID %d is not approved. Status: %s\n", reqID, status);
+                }
+                break;
+            }
+        }
+    }
+
+    fclose(file);
+
+    if (!found) {
+        printf("Request ID %d not found.\n", reqID);
+    }
+}
+
+void generateDocx(int reqID, const char* name, const char* type, const char* date) {
+    char filename[100];
+    sprintf(filename, "Request_%d.doc", reqID);
+
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Error: Could not create %s\n", filename);
+        return;
+    }
+
+    fprintf(file, "Request ID: %d\n", reqID);
+    fprintf(file, "Resident Name: %s\n", name);
+    fprintf(file, "Document Type: %s\n", type);
+    fprintf(file, "Date Requested: %s\n", date);
+    fprintf(file, "Status: Approved");
+
+    fclose(file);
+
+    printf("Document generated: %s\n", filename);
+}
+
 
 int main() {
     srand(time(NULL));

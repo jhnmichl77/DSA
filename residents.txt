@@ -1,0 +1,2 @@
+RESIDENT,8574,John Michael Sarol,21,M
+ENDRESIDENT
