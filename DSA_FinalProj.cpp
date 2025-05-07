@@ -99,7 +99,7 @@ void updateRequestStatus(Queue* queue);
 void exportSelectedBlotters();
 void printRequest(Queue* queue);
 void generateDocx(int reqID, const char* name, const char* type, const char* date);
-
+void residentToExcel(const char* filename);
 void freeInventory() {
     Item* current = headItem;
     Item* next;
@@ -286,7 +286,8 @@ void documentsRequestOrder(Queue* queue, const char* role) {
         if (strcmp(role, "Captain") == 0) {
             printf("[4]. Update Request Status\n");
             printf("[5]. Back to User Dashboard\n");
-            printf("[9]. Print A Request\n");
+            printf("[6]. Print A Request\n");
+            
         } else {
             printf("[4]. Back to User Dashboard\n");
         }
@@ -331,8 +332,10 @@ void documentsRequestOrder(Queue* queue, const char* role) {
                 return;
                 clearScreen();
                 break;
-            case 9: 
-            	printRequest(queue);
+            case 6: 
+            if (strcmp(role, "Captain") == 0) {
+                    printRequest(queue);
+				}
             	return;
             default:
                 printf("Invalid choice. Please try again.\n");
@@ -349,7 +352,6 @@ void searchResident() {
 	displayResidents();
     char searchName[MAX_NAME_LENGTH];
     printf("Enter the name of the resident to search: ");
-    getchar();
     fgets(searchName, sizeof(searchName), stdin);
     searchName[strcspn(searchName, "\n")] = 0;
     Resident* current = head;
@@ -596,6 +598,7 @@ const char* checkRole() {
     const char captainPassword[] = "Admin.123";
     const char secretaryPassword[] = "123";
     char input[20];
+    system("cls");
     printCentered("===============================");
     printCentered("Please log in to the account!");
     printCentered("===============================\n");
@@ -787,7 +790,8 @@ void userDashboard(const char* role) {
     printf("\n[7]. Clear Text Screen"); // clear texts in the screen
      if (strcmp(role, "Captain") == 0) {
         printf("\n[8]. Update Request Status");
-        printf("\n[9]. Exit\n");
+        printf("\n[9]. Exit");
+        printf("\n[10]. Save Residents Data\n");
     } else {
         printf("\n[8]. Exit\n");
     }
@@ -1159,6 +1163,22 @@ void loadInventory(const char* filename) {
     printf("Inventory loaded from %s\n", filename);
 }
 
+void residentToExcel(const char* filename){
+	FILE* file = fopen(filename, "w");
+	if(file == NULL){
+		printf("\nError opening file");
+		return;
+	}
+	fprintf(file, "ID, Name, Age, Gender\n");
+	Resident* current = head;
+	while(current !=NULL){
+		fprintf(file, "%d,%s,%d,%c\n", current->id, current->name,current->age,current->gender);
+		current = current->next;
+	}
+	fclose(file);
+	printf("residents.txt successfully saved to Excel!");
+}
+
 void freeQueue(Queue* queue) {
     if (queue == NULL) return;
     DocumentRequest* current = queue->front;
@@ -1337,7 +1357,6 @@ int main() {
                     updateRequestStatus(queue);
                     break;
                 }
-                 
             case 9:
                 saveResidents("residents.txt");
                 saveRequest(queue, "requests.txt");
@@ -1348,6 +1367,10 @@ int main() {
                 freeResidents();
                 freeInventory();
                 return 0;
+            case 10:
+            	residentToExcel("residents.csv");
+            	printf("\n");
+            	break;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
