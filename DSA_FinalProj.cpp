@@ -1281,27 +1281,34 @@ void printRequest(Queue* queue) {
 }
 
 void generateDocx(int reqID, const char* name, const char* type, const char* date) {
+	
     char filename[100];
     sprintf(filename, "Request_%d.doc", reqID);
-
     FILE* file = fopen(filename, "w");
     if (file == NULL) {
         printf("Error: Could not create %s\n", filename);
         return;
     }
-
-    fprintf(file, "Request ID: %d\n", reqID);
-    fprintf(file, "Resident Name: %s\n", name);
-    fprintf(file, "Document Type: %s\n", type);
-    fprintf(file, "Date Requested: %s\n", date);
-    fprintf(file, "Status: Approved");
-
+	fprintf(file, "{\\rtf1\\ansi\\deff0\n");
+    fprintf(file, "\\b\\fs24 \t\t\t\t\tRepublic of the Philippines\\b0\\line\n");
+    fprintf(file, "\t\t\t\t\t    Province of Cebu\\line\n");
+    fprintf(file, "\t\t\t\t\t  Cebu City, 6000\\line\n");
+    fprintf(file, "\t\t\t\t\t  Final Project in DSA\\line\n");
+    fprintf(file, "\\line Control Number: %d\\line\\line\n", reqID);
+    fprintf(file, "\\b\\fs28 Barangay Clearance\\b0\\fs24\\line\\line\n");
+    fprintf(file, "TO WHOM IT MAY CONCERN,\\line\\line\n");
+    fprintf(file, "This is to certify that %s, of legal age, Filipino Citizen, is a resident of DSA-H3. ", name);
+    fprintf(file, "This certifies that the above mentioned person is known to be of good moral character, law-abiding and has no derogatory record filed in this office.\\line\\line\n");
+    fprintf(file, "This certification is issued upon the request of the above mentioned individual for whatever purpose it may serve.\\line\\line\n");
+    fprintf(file, "Document Type: \\ul %s\\ulnone\\line\n", type);
+    fprintf(file, "Date Requested: \\ul %s\\ulnone\\line\\line\\line\n", date);
+    fprintf(file, "Signature of Resident\\line\\line");
+    fprintf(file, "\\b Status: Approved\\b0\n");
+    fprintf(file, "}");
     fclose(file);
-
     printf("Document generated: %s\n", filename);
 }
-
-
+ 
 int main() {
     srand(time(NULL));
     Queue* queue = createQueue();
